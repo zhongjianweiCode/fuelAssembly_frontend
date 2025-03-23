@@ -43,8 +43,10 @@ export default function Page() {
 
     try {
       await login(username, password);
+      console.log('Login successful, redirecting to:', redirect);
       router.replace(redirect);
     } catch (err) {
+      console.error('Login failed:', err);
       setError(err instanceof Error ? err.message : "login failed");
     } finally {
       setSubmitting(false);

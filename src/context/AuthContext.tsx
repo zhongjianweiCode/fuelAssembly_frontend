@@ -39,39 +39,47 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const validateTokens = async () => {
       try {
+        setLoading(true);
         const access = getAccessToken();
         const refresh = getRefreshToken();
 
-        if (access && refresh) {
-          try {
-            // 先尝试验证 access token
-            await api.post("/api/token/verify", { token: access });
-            setUser({ accessToken: access, refreshToken: refresh });
-          } catch (error) {
-            // 如果 access token 验证失败，尝试使用 refresh token 获取新的 access token
-            if (axios.isAxiosError(error) && error.response?.status === 401) {
-              try {
-                const { data } = await api.post("/api/token/refresh", {
-                  refresh: refresh,
-                });
-                // 保存新的 access token
-                setTokens(data.access, refresh);
-                setUser({ accessToken: data.access, refreshToken: refresh });
-              } catch (refreshError) {
-                // 如果刷新 token 也失败，则登出
-                console.error("Token refresh failed:", refreshError);
-                await logout();
-                router.replace("/login");
-              }
-            } else {
-              // 其他错误，登出
-              console.error("Token validation failed:", error);
+        if (!access || !refresh) {
+          console.log("No tokens found, redirecting to login");
+          setUser(null);
+          router.replace("/login");
+          return;
+        }
+
+        try {
+          // 先尝试验证 access token
+          await api.post("/api/token/verify", { token: access });
+          console.log("Access token is valid");
+          setUser({ accessToken: access, refreshToken: refresh });
+        } catch (error) {
+          // 如果 access token 验证失败，尝试使用 refresh token 获取新的 access token
+          console.warn("Access token validation failed, attempting refresh");
+          if (axios.isAxiosError(error) && error.response?.status === 401) {
+            try {
+              console.log("Attempting to refresh token");
+              const { data } = await api.post("/api/token/refresh", {
+                refresh: refresh,
+              });
+              // 保存新的 access token
+              console.log("Token refreshed successfully");
+              setTokens(data.access, refresh);
+              setUser({ accessToken: data.access, refreshToken: refresh });
+            } catch (refreshError) {
+              // 如果刷新 token 也失败，则登出
+              console.error("Token refresh failed:", refreshError);
               await logout();
               router.replace("/login");
             }
+          } else {
+            // 其他错误，登出
+            console.error("Token validation failed:", error);
+            await logout();
+            router.replace("/login");
           }
-        } else {
-          router.replace("/login");
         }
       } catch (error) {
         console.error("Token validation failed:", error);
@@ -93,8 +101,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       );
       setTokens(data.access, data.refresh);
       setUser({ accessToken: data.access, refreshToken: data.refresh });
-    } catch {
-      throw new Error("login failed");
+    } catch (error) {
+      console.error("Login error:", error);
+      if (axios.isAxiosError(error)) {
+        // 网络错误
+        if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED') {
+          throw new Error("Cannot connect to server. Please check if the backend server is running.");
+        }
+        // 服务器返回的错误
+        if (error.response) {
+          const statusCode = error.response.status;
+          const errorMessage = error.response.data?.detail || "Unknown server error";
+          throw new Error(`Login failed (${statusCode}): ${errorMessage}`);
+        }
+      }
+      throw new Error("Login failed. Please check your credentials or try again later.");
     }
   };
 

@@ -1,105 +1,146 @@
 import axios from "axios";
-import {
-  getAccessToken,
-  getRefreshToken,
-  setTokens,
-  removeTokens,
+import { 
+  getAccessToken, 
+  getRefreshToken, 
+  setTokens, 
+  removeTokens 
 } from "@/utils/auth";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
+// 确保即使环境变量丢失也有一个默认值
+let BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
 
-// create a new instance of axios with a custom config
+// 生产环境检查 - 确保使用正确的生产API
+if (process.env.NEXT_PUBLIC_NODE_ENV === 'production') {
+  BASE_URL = 'https://fuelassemblybackend-production.up.railway.app';
+  console.log('Production mode: Using production API base URL:', BASE_URL);
+} else {
+  console.log('Development mode: API Base URL:', BASE_URL);
+}
+
 const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 15000,
+  timeout: 30000, // 增加超时时间到30秒，适应网络延迟
+  withCredentials: true, // 跨域凭证携带
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// 请求拦截器
-// Add a request interceptor
+// 调试辅助函数
+const logRequest = (config: {
+  method?: string;
+  url?: string;
+  headers?: Record<string, unknown>;
+  data?: unknown;
+}) => {
+  if (process.env.NEXT_PUBLIC_NODE_ENV === "development") {
+    console.groupCollapsed(`📤 ${config.method?.toUpperCase()} ${config.url}`);
+    console.log('Headers:', config.headers);
+    console.log('Data:', config.data);
+    console.groupEnd();
+  }
+};
+
+const logResponse = (response: {
+  status: number;
+  config: { url?: string };
+  data?: unknown;
+}) => {
+  if (process.env.NEXT_PUBLIC_NODE_ENV === "development") {
+    console.log(`📥 ${response.status} ${response.config.url}`, response.data);
+  }
+};
+
+// 请求拦截器优化
 api.interceptors.request.use(
   (config) => {
-    // Do something before request is sent
+    // 动态处理 FormData
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
+
+    // 调试日志
+    logRequest(config);
+
+    // 令牌处理优化
     const token = getAccessToken();
-    if (token) {
+    if (token && !config.headers.Authorization) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-
-    // 如果是 FormData，删除 Content-Type header
-    if (config.data instanceof FormData) {
-      delete config.headers['Content-Type'];  // 让浏览器自动设置正确的 Content-Type
-    }
-
-    // 开发环境日志
-    if (process.env.NODE_ENV === "development") {
-      console.log(
-        `📤 send request: ${config.method?.toUpperCase()}, url:${BASE_URL}${config.url}`,
-        '\nHeaders:', config.headers,
-        '\nData:', config.data
-      );
-    }
+    
     return config;
   },
-  (error) => {
-    // Do something with request error
-    return Promise.reject(error);
-  }
+  error => Promise.reject(error)
 );
 
 // 响应拦截器
-// Add a response interceptor
 api.interceptors.response.use(
-  // Any status code that lie within the range of 2xx cause this function to trigger
-  // Do something with response data
-  (response) => {
-    // 开发环境日志
-    if (process.env.NODE_ENV === "development") {
-      console.log(
-        `📥 recieve response: ${response.status}, url: ${BASE_URL}${response.config.url}`
-      );
-    }
+  response => {
+    logResponse(response);
     return response;
   },
-  async (error) => {
+  async error => {
     const originalRequest = error.config;
-
-    // 处理401错误且不是认证相关端点
-    // 1. 处理 401 未授权错误
-    if (
-      // Any status codes that falls outside the range of 2xx cause this function to trigger
-      // Do something with response error
-      error.response?.status === 401 &&
-      !originalRequest.url.includes("/token/") &&
-      !originalRequest._retry
-    ) {
+    
+    console.warn('API Error:', error.response?.status, error.response?.config?.url);
+    
+    // 401 处理逻辑
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      console.log('Attempting to refresh token due to 401 error');
       originalRequest._retry = true;
 
       try {
-        // 2. 尝试刷新访问令牌
         const refreshToken = getRefreshToken();
-        if (!refreshToken) throw new Error("No refresh token");
-        // `data` is the response that was provided by the server,data: {},
-        const { data } = await api.post("/api/token/refresh", {
-          refresh: refreshToken,
+        if (!refreshToken) {
+          console.error('No refresh token available');
+          throw new Error("Missing refresh token");
+        }
+
+        console.log('Sending refresh request');
+        
+        // 使用独立 axios 实例避免循环拦截
+        const refreshClient = axios.create({
+          baseURL: BASE_URL,
+          withCredentials: true
+        });
+        
+        const { data } = await refreshClient.post("/api/token/refresh", { 
+          refresh: refreshToken 
         });
 
-        // 3. 存储新令牌
+        console.log('Token refresh successful, updating tokens');
+        
+        // 安全存储新令牌
         setTokens(data.access, refreshToken);
-        // 4. 重试原始请求
+        
+        // 重试原始请求
         originalRequest.headers.Authorization = `Bearer ${data.access}`;
-
         return api(originalRequest);
       } catch (refreshError) {
-        // 5. 刷新失败时清除令牌并跳转登录
+        console.error('Token refresh failed:', refreshError);
+        
+        // 清除令牌
         removeTokens();
-        window.location.href = "/login";
-        return Promise.reject(refreshError);
+        
+        if (typeof window !== "undefined") {
+          const currentPath = window.location.pathname;
+          console.log(`Redirecting to login from ${currentPath}`);
+          window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
+        }
+        
+        return Promise.reject({
+          ...(refreshError instanceof Error ? { message: refreshError.message, stack: refreshError.stack } : { error: refreshError }),
+          message: "Session expired. Please login again."
+        });
       }
     }
 
-    return Promise.reject(error);
+    // 其他错误处理
+    return Promise.reject({
+      code: error.response?.status || "NETWORK_ERROR",
+      message: error.response?.data?.detail || "Unknown error occurred",
+      raw: error
+    });
   }
 );
 
