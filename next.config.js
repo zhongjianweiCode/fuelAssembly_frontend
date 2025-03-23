@@ -3,6 +3,10 @@ const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['@mui/x-data-grid'],
   output: 'standalone', // 用于容器化部署
+  experimental: {
+    // 这将减少中间文件的大小
+    outputFileTracingRoot: process.env.NODE_ENV === 'production' ? '/app' : undefined,
+  },
   images: {
     remotePatterns: [
       {

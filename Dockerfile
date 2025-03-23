@@ -14,6 +14,7 @@ COPY . .
 # 设置环境变量
 ENV NEXT_PUBLIC_API_BASE_URL=https://fuelassemblybackend-production.up.railway.app
 ENV NEXT_PUBLIC_NODE_ENV=production
+ENV NODE_ENV=production
 # 运行构建
 RUN npm run build
 
@@ -24,6 +25,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_PUBLIC_API_BASE_URL=https://fuelassemblybackend-production.up.railway.app
 ENV NEXT_PUBLIC_NODE_ENV=production
+ENV PORT=3000
 
 # 创建非 root 用户执行应用
 RUN addgroup --system --gid 1001 nodejs
@@ -34,6 +36,11 @@ USER nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# 验证文件是否存在
+RUN ls -la
+RUN ls -la .next/static || echo "Static files not found"
+RUN ls -la server.js || echo "Server file not found"
 
 # 暴露端口
 EXPOSE 3000

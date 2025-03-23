@@ -8,6 +8,13 @@
 2. 安装 Railway CLI（可选）
 3. 确保后端 API 已经部署在 `https://fuelassemblybackend-production.up.railway.app`
 
+## 重要说明
+
+本项目使用 Next.js 的 `standalone` 输出模式进行部署，这意味着：
+
+1. 部署后的应用使用 `node .next/standalone/server.js` 命令启动，而不是 `next start`
+2. 所有静态资源都被复制到 `.next/standalone` 目录以便独立运行
+
 ## 部署步骤
 
 ### 使用 Railway Dashboard 部署
@@ -21,7 +28,9 @@
    - `NEXT_PUBLIC_API_BASE_URL` = `https://fuelassemblybackend-production.up.railway.app`
    - `NEXT_PUBLIC_NODE_ENV` = `production`
    - `PORT` = `3000`
-7. Railway 会自动检测 Next.js 项目并使用正确的构建命令
+   - `NODE_ENV` = `production`
+7. 确保启动命令设置为: `node .next/standalone/server.js`
+8. Railway 会自动检测构建命令为 `npm run build`
 
 ### 使用 Railway CLI 部署
 
@@ -41,12 +50,28 @@
 
 ## 故障排除
 
-如果遇到部署问题:
+如果遇到 "next: not found" 错误:
+1. 确保启动命令已更改为 `node .next/standalone/server.js`
+2. 检查构建是否成功完成并生成了 standalone 目录
 
+其他常见问题:
 1. 查看 Railway 日志以获取错误详情
 2. 确认环境变量设置正确
 3. 验证 API 端点是否可访问
 4. 检查 CORS 设置是否正确
+5. 通过添加 `RUN ls -la` 命令在 Dockerfile 中查看文件结构
+
+## 本地测试 Standalone 构建
+
+在本地测试与 Railway 相同的构建:
+
+```bash
+# 构建应用
+npm run build
+
+# 使用 standalone 模式运行
+npm run start:standalone
+```
 
 ## 自定义域名设置
 

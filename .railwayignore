@@ -1,0 +1,22 @@
+# 开发文件
+.git
+.github
+.vscode
+.next/cache
+node_modules
+
+# 测试文件
+__tests__
+jest.config.js
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+
+# 文档和配置文件
+*.md
+!README.md
+!RAILWAY-DEPLOY.md
+.gitignore
+.eslintrc
+.prettierrc 
