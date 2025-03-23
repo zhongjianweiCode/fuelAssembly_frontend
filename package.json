@@ -5,8 +5,9 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
+    "postbuild": "node copy-standalone.js",
     "start": "next start",
-    "start:standalone": "node .next/standalone/server.js",
+    "start:standalone": "cd .next/standalone && node server.js",
     "lint": "next lint",
     "railway:deploy": "railway up",
     "postinstall": "prisma generate || true"

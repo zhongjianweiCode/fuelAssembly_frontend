@@ -6,7 +6,7 @@
 
 1. 您需要一个 Railway 账户
 2. 安装 Railway CLI（可选）
-3. 确保后端 API 已经部署在 `https://fuelassemblybackend-production.up.railway.app`
+3. 确保后端 API 已经部署在 `https://skdjangobackend-production.up.railway.app`
 
 ## 重要说明
 
@@ -25,7 +25,7 @@
 4. 连接您的 GitHub 仓库并选择项目
 5. 选择分支 (通常是 `main` 或 `master`)
 6. 在"Settings"选项卡设置以下环境变量:
-   - `NEXT_PUBLIC_API_BASE_URL` = `https://fuelassemblybackend-production.up.railway.app`
+   - `NEXT_PUBLIC_API_BASE_URL` = `https://skdjangobackend-production.up.railway.app`
    - `NEXT_PUBLIC_NODE_ENV` = `production`
    - `PORT` = `3000`
    - `NODE_ENV` = `production`

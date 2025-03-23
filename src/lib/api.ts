@@ -7,11 +7,15 @@ import {
 } from "@/utils/auth";
 
 // 确保即使环境变量丢失也有一个默认值
-let BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
+const DEFAULT_BASE_URL = "http://127.0.0.1:8000";
+const PRODUCTION_API_URL = "https://skdjangobackend-production.up.railway.app";
+
+// 确定 API 基础 URL
+let BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || DEFAULT_BASE_URL;
 
 // 生产环境检查 - 确保使用正确的生产API
 if (process.env.NEXT_PUBLIC_NODE_ENV === 'production') {
-  BASE_URL = 'https://fuelassemblybackend-production.up.railway.app';
+  BASE_URL = PRODUCTION_API_URL;
   console.log('Production mode: Using production API base URL:', BASE_URL);
 } else {
   console.log('Development mode: API Base URL:', BASE_URL);
@@ -129,8 +133,7 @@ api.interceptors.response.use(
         }
         
         return Promise.reject({
-          ...(refreshError instanceof Error ? { message: refreshError.message, stack: refreshError.stack } : { error: refreshError }),
-          message: "Session expired. Please login again."
+                     message: "Session expired. Please login again."
         });
       }
     }

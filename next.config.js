@@ -3,10 +3,7 @@ const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['@mui/x-data-grid'],
   output: 'standalone', // 用于容器化部署
-  experimental: {
-    // 这将减少中间文件的大小
-    outputFileTracingRoot: process.env.NODE_ENV === 'production' ? '/app' : undefined,
-  },
+  outputFileTracingRoot: process.cwd(), // 修正路径追踪根目录
   images: {
     remotePatterns: [
       {
@@ -15,7 +12,7 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'fuelassemblybackend-production.up.railway.app'
+        hostname: 'skdjangobackend-production.up.railway.app'
       }
     ],
   },
@@ -35,4 +32,4 @@ const nextConfig = {
   },
 }
 
-module.exports = nextConfig 
+module.exports = nextConfig
