@@ -109,17 +109,17 @@ export default function Page() {
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
                 <FiUser className="w-4 h-4" />
-                Username
+                Email
               </label>
               <input
-                type="text"
+                type="email"
                 value={username}
                 onChange={(e) => {
                   setUsername(e.target.value);
                   setTouchedFields((prev) => ({ ...prev, username: true }));
                 }}
                 required
-                placeholder="Enter your username"
+                placeholder="Enter your email"
                 className={`w-full px-4 py-3 rounded-lg border ${
                   showUsernameError
                     ? "border-red-500 focus:border-red-500"
