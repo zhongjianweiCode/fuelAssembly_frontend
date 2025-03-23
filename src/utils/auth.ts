@@ -39,6 +39,8 @@ export const setTokens = (accessToken: string, refreshToken: string) => {
   const isSecure = isSecureEnvironment();
   
   console.log("Setting tokens with domain:", domain, "isSecure:", isSecure);
+  console.log("Access token (first 10 chars):", accessToken.substring(0, 10) + '...');
+  console.log("Refresh token (first 10 chars):", refreshToken.substring(0, 10) + '...');
   
   // 基本 Cookie 选项
   const cookieOptions: Cookies.CookieAttributes = {
@@ -76,6 +78,11 @@ export const setTokens = (accessToken: string, refreshToken: string) => {
 export const getAccessToken = () => {
   try {
     const token = Cookies.get("accessToken");
+    if (token) {
+      console.log("Access token found (first 10 chars):", token.substring(0, 10) + '...');
+    } else {
+      console.log("No access token found");
+    }
     return token || null;
   } catch (error) {
     console.error("Error reading access token:", error);
@@ -86,6 +93,11 @@ export const getAccessToken = () => {
 export const getRefreshToken = () => {
   try {
     const token = Cookies.get("refreshToken");
+    if (token) {
+      console.log("Refresh token found (first 10 chars):", token.substring(0, 10) + '...');
+    } else {
+      console.log("No refresh token found");
+    }
     return token || null;
   } catch (error) {
     console.error("Error reading refresh token:", error);

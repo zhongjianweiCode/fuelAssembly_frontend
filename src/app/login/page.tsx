@@ -18,22 +18,32 @@ import { useState, useEffect } from "react";
 
 export default function Page() {
   const router = useRouter();
-  const { login } = useAuth();
-  const [username, setUsername] = useState<string>("");
+  const searchParams = useSearchParams();
+  const { login, isAuthenticated } = useAuth();
+  const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [touchedFields, setTouchedFields] = useState({
-    username: false,
+    email: false,
     password: false,
   });
 
-  const redirect = useSearchParams().get("redirect") || "/dashboard";
-  const isFormValid = username.trim().length > 0 && password.trim().length >= 6;
+  // Get the redirect URL from query parameters
+  const redirect = searchParams.get("redirect") || "/dashboard";
 
-  // 即时验证反馈
-  const showUsernameError = touchedFields.username && username.trim().length === 0;
+  // If already authenticated, redirect to the specified page
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace(redirect);
+    }
+  }, [isAuthenticated, redirect, router]);
+
+  const isFormValid = email.trim().length > 0 && password.trim().length >= 6;
+
+  // Immediate validation feedback
+  const showEmailError = touchedFields.email && email.trim().length === 0;
   const showPasswordError = touchedFields.password && password.trim().length < 8;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -42,18 +52,20 @@ export default function Page() {
     setError(null);
 
     try {
-      await login(username, password);
+      // 调用登录方法，现在它会在出错时抛出异常，成功时返回true
+      await login(email, password);
       console.log('Login successful, redirecting to:', redirect);
-      router.replace(redirect);
-    } catch (err) {
+      // 认证上下文将处理重定向
+    } catch (err: unknown) {
       console.error('Login failed:', err);
-      setError(err instanceof Error ? err.message : "login failed");
+      // 显示错误消息，现在应该是从AuthContext中抛出的
+      setError(err instanceof Error ? err.message : "登录失败，请重试。");
     } finally {
       setSubmitting(false);
     }
   };
 
-  // 自动隐藏错误提示
+  // Automatically hide error messages
   useEffect(() => {
     if (error) {
       const timer = setTimeout(() => setError(null), 5000);
@@ -63,7 +75,7 @@ export default function Page() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-blue-100 p-4">
-      {/* 错误提示 Toast */}
+      {/* Error Toast */}
       <AnimatePresence>
         {error && (
           <motion.div
@@ -105,7 +117,7 @@ export default function Page() {
           </div>
 
           <div className="space-y-4">
-            {/* 用户名输入 */}
+            {/* Email input */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
                 <FiUser className="w-4 h-4" />
@@ -113,26 +125,26 @@ export default function Page() {
               </label>
               <input
                 type="email"
-                value={username}
+                value={email}
                 onChange={(e) => {
-                  setUsername(e.target.value);
-                  setTouchedFields((prev) => ({ ...prev, username: true }));
+                  setEmail(e.target.value);
+                  setTouchedFields((prev) => ({ ...prev, email: true }));
                 }}
                 required
                 placeholder="Enter your email"
                 className={`w-full px-4 py-3 rounded-lg border ${
-                  showUsernameError
+                  showEmailError
                     ? "border-red-500 focus:border-red-500"
                     : "border-gray-200 focus:border-indigo-500"
                 } focus:ring-2 focus:ring-indigo-200 transition-all outline-none`}
                 disabled={submitting}
               />
-              {showUsernameError && (
-                <p className="text-sm text-red-500">Username is required</p>
+              {showEmailError && (
+                <p className="text-sm text-red-500">Email is required</p>
               )}
             </div>
 
-            {/* 密码输入 */}
+            {/* Password input */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
                 <FiLock className="w-4 h-4" />
@@ -172,7 +184,7 @@ export default function Page() {
             </div>
           </div>
 
-          {/* 登录按钮 */}
+          {/* Login button */}
           <motion.button
             whileHover={isFormValid && !submitting ? { scale: 1.02 } : {}}
             whileTap={isFormValid && !submitting ? { scale: 0.98 } : {}}

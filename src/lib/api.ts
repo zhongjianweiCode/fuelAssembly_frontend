@@ -6,31 +6,42 @@ import {
   removeTokens 
 } from "@/utils/auth";
 
-// 确保即使环境变量丢失也有一个默认值
+// Ensure we have a default value even if environment variables are missing
 const DEFAULT_BASE_URL = "http://127.0.0.1:8000";
 const PRODUCTION_API_URL = "https://skdjangobackend-production.up.railway.app";
 
-// 确定 API 基础 URL
+// Determine the API base URL
 let BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || DEFAULT_BASE_URL;
 
-// 生产环境检查 - 确保使用正确的生产API
+// Production environment check - ensure we use the correct production API
 if (process.env.NEXT_PUBLIC_NODE_ENV === 'production') {
   BASE_URL = PRODUCTION_API_URL;
-  console.log('Production mode: Using production API base URL:', BASE_URL);
+  // console.log('Production mode: Using production API base URL:', BASE_URL);
 } else {
   console.log('Development mode: API Base URL:', BASE_URL);
 }
 
+// Determine if we're in development or production
+const isDevelopment = process.env.NEXT_PUBLIC_NODE_ENV !== 'production';
+
+// 打印配置信息，帮助调试
+// console.log('-------- API CONFIGURATION --------');
+// console.log('BASE_URL:', BASE_URL);
+// console.log('isDevelopment:', isDevelopment);
+// console.log('withCredentials:', !isDevelopment);
+// console.log('----------------------------------');
+
 const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 30000, // 增加超时时间到30秒，适应网络延迟
-  withCredentials: true, // 跨域凭证携带
+  timeout: 30000, // Increase timeout to 30 seconds to accommodate network delays
+  withCredentials: !isDevelopment, // Only send credentials in production to avoid CORS issues in development
   headers: {
     "Content-Type": "application/json",
+    "Accept": "application/json",
   },
 });
 
-// 调试辅助函数
+// Debug helper functions
 const logRequest = (config: {
   method?: string;
   url?: string;
@@ -39,8 +50,8 @@ const logRequest = (config: {
 }) => {
   if (process.env.NEXT_PUBLIC_NODE_ENV === "development") {
     console.groupCollapsed(`📤 ${config.method?.toUpperCase()} ${config.url}`);
-    console.log('Headers:', config.headers);
-    console.log('Data:', config.data);
+    // console.log('Headers:', config.headers);
+    // console.log('Data:', config.data);
     console.groupEnd();
   }
 };
@@ -51,24 +62,40 @@ const logResponse = (response: {
   data?: unknown;
 }) => {
   if (process.env.NEXT_PUBLIC_NODE_ENV === "development") {
-    console.log(`📥 ${response.status} ${response.config.url}`, response.data);
+    // console.log(`📥 ${response.status} ${response.config.url}`, response.data);
+    console.log(`📥 ${response.status}`);
   }
 };
 
-// 请求拦截器优化
+// Optimized request interceptor
 api.interceptors.request.use(
   (config) => {
-    // 动态处理 FormData
+    // Skip adding auth headers for token-related endpoints to prevent circular dependencies
+    const isAuthEndpoint = 
+      config.url?.includes('/api/token/pair') || 
+      config.url?.includes('/api/token/verify') || 
+      config.url?.includes('/api/token/refresh');
+    
+    // We're now handling the login payload directly in the AuthContext with email/password fields
+    // Make sure we don't modify the payload here
+    
+    // Dynamically handle FormData
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type'];
     }
 
-    // 调试日志
+    // Additional debug for token endpoints
+    if (isAuthEndpoint) {
+      console.log('Auth endpoint detected:', config.url);
+      // console.log('Request payload:', config.data);
+    }
+
+    // Debug logs
     logRequest(config);
 
-    // 令牌处理优化
+    // Optimized token handling - only add token for non-auth endpoints
     const token = getAccessToken();
-    if (token && !config.headers.Authorization) {
+    if (token && !isAuthEndpoint && !config.headers.Authorization) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     
@@ -77,7 +104,7 @@ api.interceptors.request.use(
   error => Promise.reject(error)
 );
 
-// 响应拦截器
+// Response interceptor
 api.interceptors.response.use(
   response => {
     logResponse(response);
@@ -88,9 +115,15 @@ api.interceptors.response.use(
     
     console.warn('API Error:', error.response?.status, error.response?.config?.url);
     
-    // 401 处理逻辑
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      console.log('Attempting to refresh token due to 401 error');
+    // Skip refresh token logic for auth endpoints to prevent infinite loops
+    const isAuthEndpoint = 
+      originalRequest.url?.includes('/api/token/pair') || 
+      originalRequest.url?.includes('/api/token/verify') || 
+      originalRequest.url?.includes('/api/token/refresh');
+
+    // 401 handling logic - only attempt refresh for non-auth endpoints
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
+      // console.log('Attempting to refresh token due to 401 error');
       originalRequest._retry = true;
 
       try {
@@ -100,48 +133,48 @@ api.interceptors.response.use(
           throw new Error("Missing refresh token");
         }
 
-        console.log('Sending refresh request');
+        // console.log('Sending refresh request');
         
-        // 使用独立 axios 实例避免循环拦截
+        // Use an independent axios instance to avoid circular interception
         const refreshClient = axios.create({
           baseURL: BASE_URL,
-          withCredentials: true
+          withCredentials: !isDevelopment,
+          headers: {
+            "Accept": "application/json",
+            "Content-Type": "application/json"
+          }
         });
         
         const { data } = await refreshClient.post("/api/token/refresh", { 
           refresh: refreshToken 
         });
 
-        console.log('Token refresh successful, updating tokens');
+        // console.log('Token refresh successful, updating tokens');
         
-        // 安全存储新令牌
+        // Securely store new tokens
         setTokens(data.access, refreshToken);
         
-        // 重试原始请求
+        // Retry the original request
         originalRequest.headers.Authorization = `Bearer ${data.access}`;
         return api(originalRequest);
       } catch (refreshError) {
         console.error('Token refresh failed:', refreshError);
         
-        // 清除令牌
+        // Clear tokens but don't force redirect
         removeTokens();
         
-        if (typeof window !== "undefined") {
-          const currentPath = window.location.pathname;
-          console.log(`Redirecting to login from ${currentPath}`);
-          window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
-        }
-        
         return Promise.reject({
-                     message: "Session expired. Please login again."
+          message: "Session expired. Please login again.",
+          status: 401
         });
       }
     }
 
-    // 其他错误处理
+    // Other error handling
     return Promise.reject({
       code: error.response?.status || "NETWORK_ERROR",
       message: error.response?.data?.detail || "Unknown error occurred",
+      status: error.response?.status,
       raw: error
     });
   }

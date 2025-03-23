@@ -4,27 +4,39 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from '@/context/AuthContext';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FiAlertCircle, FiLogOut, FiX } from 'react-icons/fi';
 
 
 export default function Page() {
-  const { logout } = useAuth();
+  const { logout, isAuthenticated } = useAuth();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // 如果用户未登录，直接重定向到登录页面
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.replace('/login');
+    }
+  }, [isAuthenticated, router]);
 
   const handleLogout = () => {
     setIsSubmitting(true);
     logout()
       .then(() => {
         setIsSubmitting(false);
-        router.replace('/login');
+        router.replace('/');
       })
       .catch((error) => {
         console.error('Logout failed:', error);
         setIsSubmitting(false);
       });
   }  
+
+  // 如果用户未登录，不渲染页面内容
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center ">

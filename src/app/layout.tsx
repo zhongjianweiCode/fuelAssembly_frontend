@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import QueryProvider from "./providers";
 import { ToastProvider } from "@/components/ui/toast";
+import { RouteGuard } from "@/components/RouteGuard";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -26,7 +27,7 @@ export default function RootLayout({
         <AuthProvider>
           <QueryProvider>
             <ToastProvider />
-            {children}
+            <RouteGuard>{children}</RouteGuard>
           </QueryProvider>
         </AuthProvider>
       </body>

@@ -1,21 +1,10 @@
 "use client";
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-} from "react";
-import {
-  getAccessToken,
-  getRefreshToken,
-  setTokens,
-  removeTokens,
-} from "@/utils/auth";
-import api from "@/lib/api";
-import axios from "axios";
-import { useRouter } from "next/navigation";
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import axios from 'axios';
+import { setTokens, getAccessToken, getRefreshToken, removeTokens } from "@/utils/auth";
 
+// Define types
 interface User {
   accessToken: string;
   refreshToken: string;
@@ -24,123 +13,264 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// 错误类型定义
+// interface ApiError {
+//   message: string;
+//   response?: {
+//     status: number;
+//     data?: unknown;
+//     headers?: Record<string, string>;
+//   };
+// }
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+// Create context with default values
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  loading: true,
+  login: async () => false,
+  logout: async () => {},
+  isAuthenticated: false,
+});
+
+// Public paths that don't require authentication
+const publicPaths = ['/', '/login', '/register', '/password-reset', '/logout'];
+
+// 获取完整API URL的工具函数
+const getApiUrl = (endpoint: string): string => {
+  // 开发环境直接使用本地后端
+  const baseUrl = process.env.NEXT_PUBLIC_NODE_ENV === 'production' 
+    ? "https://skdjangobackend-production.up.railway.app" 
+    : "http://127.0.0.1:8000";
+  
+  // 确保endpoint以/开头
+  const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  
+  return `${baseUrl}${normalizedEndpoint}`;
+};
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
+  
+  // Check if current path is public
+  const isPublicPath = publicPaths.some(path => pathname?.startsWith(path) || false);
 
-  useEffect(() => {
-    const validateTokens = async () => {
-      try {
-        setLoading(true);
-        const access = getAccessToken();
-        const refresh = getRefreshToken();
-
-        if (!access || !refresh) {
-          console.log("No tokens found, redirecting to login");
-          setUser(null);
-          router.replace("/login");
-          return;
-        }
-
-        try {
-          // 先尝试验证 access token
-          await api.post("/api/token/verify", { token: access });
-          console.log("Access token is valid");
-          setUser({ accessToken: access, refreshToken: refresh });
-        } catch (error) {
-          // 如果 access token 验证失败，尝试使用 refresh token 获取新的 access token
-          console.warn("Access token validation failed, attempting refresh");
-          if (axios.isAxiosError(error) && error.response?.status === 401) {
-            try {
-              console.log("Attempting to refresh token");
-              const { data } = await api.post("/api/token/refresh", {
-                refresh: refresh,
-              });
-              // 保存新的 access token
-              console.log("Token refreshed successfully");
-              setTokens(data.access, refresh);
-              setUser({ accessToken: data.access, refreshToken: refresh });
-            } catch (refreshError) {
-              // 如果刷新 token 也失败，则登出
-              console.error("Token refresh failed:", refreshError);
-              await logout();
-              router.replace("/login");
-            }
-          } else {
-            // 其他错误，登出
-            console.error("Token validation failed:", error);
-            await logout();
-            router.replace("/login");
-          }
-        }
-      } catch (error) {
-        console.error("Token validation failed:", error);
-        await logout();
-        router.replace("/login");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    validateTokens();
-  }, [router]);
-
-  const login = async (email: string, password: string) => {
+  // Function to validate auth tokens
+  const validateTokens = async (): Promise<void> => {
     try {
-      const { data } = await api.post<{ access: string; refresh: string }>(
-        "/api/token/pair",
-        { email, password }
-      );
-      setTokens(data.access, data.refresh);
-      setUser({ accessToken: data.access, refreshToken: data.refresh });
-    } catch (error) {
-      console.error("Login error:", error);
-      if (axios.isAxiosError(error)) {
-        // 网络错误
-        if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED') {
-          throw new Error("Cannot connect to server. Please check if the backend server is running.");
-        }
-        // 服务器返回的错误
-        if (error.response) {
-          const statusCode = error.response.status;
-          const errorMessage = error.response.data?.detail || "Unknown server error";
-          throw new Error(`Login failed (${statusCode}): ${errorMessage}`);
+      // Get tokens using the utility functions
+      const accessToken = getAccessToken();
+      const refreshToken = getRefreshToken();
+      
+      // No tokens found - user isn't logged in
+      if (!accessToken || !refreshToken) {
+        // console.log("No tokens found");
+        setIsAuthenticated(false);
+        setUser(null);
+        return;
+      }
+
+      // Attempt to validate the access token with the backend
+      try {
+        const verifyUrl = getApiUrl('/api/token/verify');
+        console.log("Verifying token at:", verifyUrl);
+        
+        await axios.post(verifyUrl, { token: accessToken }, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        });
+        
+        console.log("Access token validated successfully");
+        setIsAuthenticated(true);
+        setUser({ accessToken, refreshToken });
+      } catch (error) {
+        console.warn("Access token validation failed, attempting refresh");
+        console.error("Access token validation error:", error instanceof Error ? error.message : 'Unknown error');
+        
+        // Try to refresh the token
+        try {
+          const refreshUrl = getApiUrl('/api/token/refresh');
+          // console.log("Refreshing token at:", refreshUrl);
+          
+          const response = await axios.post(refreshUrl, { refresh: refreshToken }, {
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            }
+          });
+          
+          if (!response.data || !response.data.access) {
+            throw new Error("Invalid refresh response");
+          }
+          
+          const newAccessToken = response.data.access;
+          
+          // Update tokens
+          setTokens(newAccessToken, refreshToken);
+          setIsAuthenticated(true);
+          setUser({ accessToken: newAccessToken, refreshToken });
+          
+          console.log("Token refreshed successfully");
+        } catch (refreshError: unknown) {
+          console.error("Token refresh failed:", refreshError instanceof Error ? refreshError.message : 'Unknown error');
+          removeTokens();
+          setIsAuthenticated(false);
+          setUser(null);
         }
       }
-      throw new Error("Login failed. Please check your credentials or try again later.");
+    } catch (error: unknown) {
+      console.error("Token validation error:", error instanceof Error ? error.message : 'Unknown error');
+      removeTokens();
+      setIsAuthenticated(false);
+      setUser(null);
     }
   };
 
-  const logout = async () => {
-    removeTokens();
-    setUser(null);
+  // Validate tokens on mount and when routes change
+  useEffect(() => {
+    const checkAuth = async (): Promise<void> => {
+      // Skip token validation for public paths
+      if (isPublicPath) {
+        setLoading(false);
+        return;
+      }
+      
+      setLoading(true);
+      await validateTokens();
+      setLoading(false);
+    };
+    
+    checkAuth();
+  }, [isPublicPath, pathname]);
+
+  // Login function
+  const login = async (email: string, password: string): Promise<boolean> => {
+    setLoading(true);
+    try {
+      // 使用正确的字段名：email 和 password
+      const payload = {
+        email: email,
+        password: password
+      };
+      
+      // console.log("Sending login payload:", payload);
+      
+      // 使用直接的 axios 调用来确保完整的URL和正确的参数
+      const completeUrl = getApiUrl('/api/token/pair');
+      console.log("Sending login request to:", completeUrl);
+      
+      const response = await axios.post(completeUrl, payload, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+      
+      // console.log("Login success. Response:", response.data);
+      
+      // 确保我们能够从响应中获取到 access 和 refresh 令牌
+      const { access, refresh } = response.data;
+      
+      if (!access || !refresh) {
+        console.error("Invalid response format - missing tokens");
+        throw new Error("服务器返回了无效的响应格式");
+      }
+      
+      // 保存令牌
+      setTokens(access, refresh);
+      
+      // 更新状态
+      setIsAuthenticated(true);
+      setUser({ accessToken: access, refreshToken: refresh });
+      
+      // 获取前一个位置或转到仪表板
+      const prevPath = localStorage.getItem('prevPath') || '/dashboard';
+      localStorage.removeItem('prevPath');
+      router.push(prevPath);
+      
+      return true;
+    } catch (error: unknown) {
+      console.error("Login failed:", error instanceof Error ? error.message : 'Unknown error');
+      
+      // 获取并记录详细错误信息
+      let errorMessage = "登录失败";
+      
+      if (axios.isAxiosError(error) && error.response) {
+        console.error("Status:", error.response.status);
+        
+        // 根据状态码提供更具体的错误消息
+        if (error.response.status === 401) {
+          errorMessage = "电子邮件或密码不正确";
+        } else if (error.response.status === 400) {
+          // 尝试从响应中提取字段错误
+          if (error.response.data) {
+            const responseData = error.response.data as Record<string, unknown>;
+            if (typeof responseData === 'object') {
+              // 提取字段错误
+              const fieldErrors = Object.entries(responseData)
+                .map(([field, errors]) => `${field}: ${errors}`)
+                .join('; ');
+              
+              if (fieldErrors) {
+                errorMessage = `验证错误: ${fieldErrors}`;
+              }
+            } else if (typeof responseData === 'string') {
+              errorMessage = responseData;
+            }
+          }
+        }
+      }
+      
+      console.error("Login error message:", errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Logout function
+  const logout = async (): Promise<void> => {
+    try {
+      // Remove tokens using the utility function
+      removeTokens();
+      
+      // Reset state
+      setIsAuthenticated(false);
+      setUser(null);
+      
+      // Redirect to login page
+      router.push('/login');
+    } catch (error: unknown) {
+      console.error('Logout error:', error instanceof Error ? error.message : 'Unknown error');
+    }
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        login,
-        logout,
-        isAuthenticated: !!user?.accessToken,
+    <AuthContext.Provider 
+      value={{ 
+        user, 
+        loading, 
+        login, 
+        logout, 
+        isAuthenticated 
       }}
     >
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error(`useAuth must be used within a AuthProvider.`);
-  return context;
-};
+// Custom hook to use the auth context
+export const useAuth = () => useContext(AuthContext);
+
+export default AuthContext;

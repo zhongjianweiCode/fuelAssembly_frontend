@@ -11,7 +11,7 @@ export const SkeletonService = {
     console.log('Fetching all skeletons...');
     try {
       const response = await api.get<SkeletonItem[]>("/api/skeleton/");
-      console.log('Skeletons API response:', response);
+      // console.log('Skeletons API response:', response);
       return response;
     } catch (error) {
       console.error('Error fetching skeletons:', error);

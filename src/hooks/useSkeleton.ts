@@ -20,12 +20,12 @@ export const useAllSkeletons = () => {
     queryFn: async () => {
       console.log('Starting to fetch skeletons...');
       try {
-        console.log('Making API request to /api/skeleton/');
+        // console.log('Making API request to /api/skeleton/');
         const response = await SkeletonService.getAllSkelton();
-        console.log('Full API response:', response);
-        console.log('Response status:', response.status);
-        console.log('Response headers:', response.headers);
-        console.log('Response data:', response.data);
+        // console.log('Full API response:', response);
+        // console.log('Response status:', response.status);
+        // console.log('Response headers:', response.headers);
+        // console.log('Response data:', response.data);
         
         if (!response.data) {
           console.error('No data in response');
