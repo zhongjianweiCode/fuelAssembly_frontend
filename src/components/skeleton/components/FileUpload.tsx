@@ -57,19 +57,19 @@ export const FileUpload = ({
       onDrop={handleDrop}
       sx={{
         border: "1px dashed",
-        borderColor: dragActive ? "#ea580c" : "#e2e8f0",
+        borderColor: dragActive ? "#3b82f6" : "#e2e8f0",
         borderRadius: "0.75rem",
-        padding: "0.75rem 1.5rem",
+        padding: "1rem 1.5rem",
         display: "flex",
         alignItems: "center",
         gap: 2,
         background: dragActive 
-          ? "linear-gradient(135deg, rgba(249, 115, 22, 0.08), rgba(234, 88, 12, 0.08))"
-          : "linear-gradient(135deg, white, #fff)",
+          ? "linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(37, 99, 235, 0.08))"
+          : "linear-gradient(135deg, #f8fafc, #ffffff)",
         transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
         cursor: "pointer",
         minWidth: "200px",
-        height: "44px",
+        height: "56px",
         position: "relative",
         overflow: "hidden",
         backdropFilter: "blur(8px)",
@@ -80,7 +80,7 @@ export const FileUpload = ({
           left: 0,
           right: 0,
           bottom: 0,
-          background: "linear-gradient(45deg, rgba(249, 115, 22, 0.05), rgba(234, 88, 12, 0.05))",
+          background: "linear-gradient(45deg, rgba(59, 130, 246, 0.05), rgba(37, 99, 235, 0.05))",
           opacity: dragActive ? 1 : 0,
           transition: "all 0.3s ease-in-out",
         },
@@ -96,17 +96,17 @@ export const FileUpload = ({
           transition: "opacity 0.3s ease-in-out",
         },
         "&:hover": {
-          borderColor: "#f97316",
+          borderColor: "#3b82f6",
           transform: "translateY(-2px)",
-          boxShadow: "0 4px 12px rgba(249, 115, 22, 0.15)",
-          background: "linear-gradient(135deg, rgba(249, 115, 22, 0.04), rgba(234, 88, 12, 0.04))",
+          boxShadow: "0 4px 12px rgba(59, 130, 246, 0.15)",
+          background: "linear-gradient(135deg, rgba(59, 130, 246, 0.04), rgba(37, 99, 235, 0.04))",
           "&::after": {
             opacity: 1,
           },
         },
         "&:active": {
           transform: "translateY(0)",
-          boxShadow: "0 2px 4px rgba(249, 115, 22, 0.1)",
+          boxShadow: "0 2px 4px rgba(59, 130, 246, 0.1)",
         }
       }}
       onClick={handleClick}
@@ -122,9 +122,9 @@ export const FileUpload = ({
 
       {isUploading ? (
         <CircularProgress 
-          size={22} 
+          size={24} 
           sx={{ 
-            color: "#ea580c",
+            color: "#3b82f6",
             marginRight: "0.5rem",
             "& .MuiCircularProgress-circle": {
               strokeLinecap: "round",
@@ -134,8 +134,8 @@ export const FileUpload = ({
       ) : (
         <CloudUpload
           sx={{
-            fontSize: "1.4rem",
-            color: dragActive ? "#ea580c" : "#94a3b8",
+            fontSize: "1.5rem",
+            color: dragActive ? "#3b82f6" : "#94a3b8",
             transition: "all 0.3s ease-in-out",
             transform: dragActive ? "scale(1.1)" : "scale(1)",
           }}
@@ -157,14 +157,14 @@ export const FileUpload = ({
           component="span" 
           sx={{ 
             fontWeight: 600,
-            background: "linear-gradient(135deg, #f97316, #ea580c)",
+            background: "linear-gradient(135deg, #3b82f6, #2563eb)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
             transition: "all 0.3s ease-in-out",
             letterSpacing: "0.01em",
           }}
         >
-          {isUploading ? "Uploading..." : "Import Excel"}
+          {isUploading ? "Uploading..." : "Choose file"}
         </Box>
         {!isUploading && (
           <Box 
@@ -177,7 +177,7 @@ export const FileUpload = ({
               letterSpacing: "0.01em",
             }}
           >
-            or drop file
+            or drop file here
           </Box>
         )}
       </Box>

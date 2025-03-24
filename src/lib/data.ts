@@ -1,29 +1,16 @@
 "use client";
 import { SkeletonItem } from "@/types/skeleton";
 import { parseISO } from "date-fns";
-import { SkeletonService } from "@/services/skeletonService";
-import { OrderService } from "@/services/orderService";
 
-export async function fetchOrders() {
-  try {
-    const response = await OrderService.getAllOrders();
-    return response.data;
-  } catch (error) {
-    throw Error(`${error}`);
-  }
-}
-
-export async function fetchSkeletons(): Promise<SkeletonItem[] | undefined> {
-  try {
-    const response = await SkeletonService.getAllSkelton();
-    return response.data;
-  } catch (error) {
-    throw Error(`${error}`);
-  }
-}
+/**
+ * 数据处理函数，接收骨架数据并计算各种统计信息
+ * 这些函数不再负责数据获取，只负责数据转换
+ */
 
 // 获取年度生产骨架产品的数量
 export function getYearlySkeletonCount(skeletons: SkeletonItem[]) {
+  if (!skeletons || skeletons.length === 0) return 0;
+  
   const currentYear = new Date().getFullYear();
   return skeletons.filter(skeleton => {
     const createdYear = new Date(skeleton.created_at).getFullYear();
@@ -33,6 +20,8 @@ export function getYearlySkeletonCount(skeletons: SkeletonItem[]) {
 
 // 获取每月生产骨架产品的数量
 export function getMonthlySkeletonCounts(skeletons: SkeletonItem[]) {
+  if (!skeletons || skeletons.length === 0) return new Array(12).fill(0);
+  
   const currentYear = new Date().getFullYear();
   const monthlyCounts = new Array(12).fill(0);
 
@@ -48,16 +37,20 @@ export function getMonthlySkeletonCounts(skeletons: SkeletonItem[]) {
 
 // 获取已放行骨架的数量
 export function getReleasedSkeletonCount(skeletons: SkeletonItem[]) {
+  if (!skeletons || skeletons.length === 0) return 0;
   return skeletons.filter(skeleton => skeleton.status === "Released").length;
 }
 
 // 获取新生产的骨架数量
 export function getNewSkeletonCount(skeletons: SkeletonItem[]) {
+  if (!skeletons || skeletons.length === 0) return 0;
   return skeletons.filter(skeleton => skeleton.status === "CMM").length;
 }
 
 // 获取当前月份的骨架数量
 export function getCurrentMonthSkeletonCount(skeletons: SkeletonItem[]) {
+  if (!skeletons || skeletons.length === 0) return 0;
+  
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth();
@@ -191,15 +184,15 @@ export function calculateBinStats(data: number[], bins: number[]) {
   return { counts, percentages };
 }
 
-// 获取所有 dashboard 数据
-export function getDashboardData(skeletons: SkeletonItem[]) {
+// 获取所有 dashboard 数据 - 接收骨架数据作为参数，不再负责获取数据
+export function getDashboardData(skeletons: SkeletonItem[] = []) {
   return {
     yearlyCount: getYearlySkeletonCount(skeletons),
     monthlyCounts: getMonthlySkeletonCounts(skeletons),
     releasedCount: getReleasedSkeletonCount(skeletons),
     newCount: getNewSkeletonCount(skeletons),
     currentMonthCount: getCurrentMonthSkeletonCount(skeletons),
-    totalCount: skeletons.length,
+    totalCount: skeletons?.length || 0,
     statusDistribution: getStatusDistribution(skeletons),
     platformDistribution: getPlatformDistribution(skeletons),
     recentSkeletons: getRecentSkeletons(skeletons, 10),

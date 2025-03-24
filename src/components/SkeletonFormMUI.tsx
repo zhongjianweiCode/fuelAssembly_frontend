@@ -1,16 +1,16 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/DeleteOutlined";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import {
   DataGrid,
   GridColDef,
   GridActionsCellItem,
   GridRowId,
-  GridRowModesModel,
   GridToolbarContainer,
   GridToolbarFilterButton,
   GridToolbarExport,
@@ -20,13 +20,13 @@ import {
   GridRenderCellParams,
   GridToolbarProps,
 } from "@mui/x-data-grid";
-import { styled } from "@mui/material/styles";
 import { SkeletonItem } from "@/types/skeleton";
 import { format } from "date-fns";
 import {
   useDeleteSkeleton,
   useAllSkeletons,
   useImportExcel,
+  useRefreshSkeletons,
 } from "@/hooks/useSkeleton";
 import { toast } from "sonner";
 import { SkeletonDialog } from "@/components/SkeletonDialog";
@@ -38,6 +38,8 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  CircularProgress,
+  Backdrop,
 } from "@mui/material";
 import { FileUpload } from "@/components/skeleton/components/FileUpload";
 import { useTheme } from "@mui/material/styles";
@@ -57,232 +59,147 @@ enum SkeletonPlatform {
   B = "B",
 }
 
-const StyledDataGrid = styled(DataGrid)(() => ({
-  border: "none",
-  backgroundColor: "white",
-  borderRadius: "1rem",
-  boxShadow: "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
-  transition: "all 0.2s ease-in-out",
-  "&:hover": {
-    boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
-  },
-  "& .MuiDataGrid-main": {
-    "& .MuiDataGrid-virtualScroller": {
-      overflow: "auto",
-      "&::-webkit-scrollbar": {
-        width: "8px",
-        height: "8px",
-      },
-      "&::-webkit-scrollbar-track": {
-        background: "#f8fafc",
-        borderRadius: "4px",
-      },
-      "&::-webkit-scrollbar-thumb": {
-        background: "#e2e8f0",
-        borderRadius: "4px",
-        transition: "background-color 0.2s ease-in-out",
-      },
-      "&::-webkit-scrollbar-thumb:hover": {
-        background: "#cbd5e1",
-      },
-    },
-  },
-  "& .MuiDataGrid-columnHeaders": {
-    backgroundColor: "#f8fafc",
-    borderBottom: "1px solid #e2e8f0",
-    borderTopLeftRadius: "1rem",
-    borderTopRightRadius: "1rem",
-    "& .MuiDataGrid-columnHeader": {
-      padding: "16px",
-      height: "56px",
-      display: "flex",
-      alignItems: "center",
-      fontWeight: 600,
-      color: "#334155",
-      fontSize: "0.875rem",
-      letterSpacing: "0.025em",
-      transition: "background-color 0.2s ease-in-out",
-      "&:hover": {
-        backgroundColor: "#f1f5f9",
-      },
-      "&:focus": {
-        outline: "none",
-      },
-      "&:focus-within": {
-        outline: "none",
-      },
-    },
-    "& .MuiDataGrid-columnSeparator": {
-      display: "none",
-    },
-  },
-  "& .MuiDataGrid-cell": {
-    borderBottom: "1px solid #f1f5f9",
-    padding: "12px 16px!important",
-    height: "48px!important",
-    display: "flex!important",
-    alignItems: "center!important",
-    fontSize: "0.875rem",
-    color: "#475569",
-    transition: "background-color 0.15s ease-in-out",
-    "&:focus": {
-      outline: "none",
-    },
-    "&:focus-within": {
-      outline: "none",
-    },
-  },
-  "& .MuiDataGrid-row": {
-    height: "48px!important",
-    minHeight: "48px!important",
-    maxHeight: "48px!important",
-    transition: "background-color 0.15s ease-in-out",
-    "&:hover": {
-      backgroundColor: "#f8fafc!important",
-    },
-    "&.Mui-selected": {
-      backgroundColor: "#f1f5f9!important",
-      "&:hover": {
-        backgroundColor: "#e2e8f0!important",
-      },
-    },
-    "&:nth-of-type(odd)": {
-      backgroundColor: "#fafafa",
-    },
-  },
-  "& .actions": {
-    color: "#64748b",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "8px",
-  },
-  "& .textPrimary": {
-    color: "#334155",
-  },
-  "& .MuiDataGrid-cellContent": {
-    display: "flex",
-    alignItems: "center",
-  },
-  "& .MuiDataGrid-footerContainer": {
-    borderTop: "1px solid #e2e8f0",
-    backgroundColor: "#f8fafc",
-    borderBottomLeftRadius: "1rem",
-    borderBottomRightRadius: "1rem",
-    minHeight: "52px",
-  },
-  "& .MuiTablePagination-root": {
-    color: "#64748b",
-  },
-  "& .MuiDataGrid-selectedRowCount": {
-    color: "#64748b",
-  },
-}));
-
 declare module "@mui/x-data-grid" {
   interface ToolbarPropsOverrides {
-    setRows: (newRows: (oldRows: SkeletonItem[]) => SkeletonItem[]) => void;
-    setRowModesModel: (
-      newModel: (oldModel: GridRowModesModel) => GridRowModesModel
-    ) => void;
-    handleFileUpload: (file: File) => void;
     handleAddClick: () => void;
+    setIsImportDialogOpen: (open: boolean) => void;
     isImporting: boolean;
+    importProgress: number;
+    isRefreshing: boolean;
+    onRefresh: () => void;
   }
 }
 
-function CustomGridToolbar(props: GridToolbarProps & {
-  handleFileUpload: (file: File) => void;
+interface CustomToolbarProps {
   handleAddClick: () => void;
+  setIsImportDialogOpen: (open: boolean) => void;
   isImporting: boolean;
-}) {
-  const { handleFileUpload, handleAddClick, isImporting } = props;
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  importProgress: number;
+  isRefreshing: boolean;
+  onRefresh: () => void;
+}
+
+function CustomToolbar(props: GridToolbarProps) {
+  // Extract custom props from slotProps
+  const customProps = props as GridToolbarProps & CustomToolbarProps;
+  const { 
+    setIsImportDialogOpen, 
+    isImporting, 
+    importProgress, 
+    handleAddClick,
+    isRefreshing,
+    onRefresh
+  } = customProps;
   
   return (
     <GridToolbarContainer
       sx={{
-        padding: isMobile ? "6px 8px" : "8px 16px",
-        gap: isMobile ? "4px" : "8px",
-        borderBottom: "1px solid #e2e8f0",
-        backgroundColor: "#f8fafc",
-        flexDirection: isMobile ? "column" : "row",
-        alignItems: "flex-start",
+        padding: 2,
+        display: "flex",
+        flexDirection: { xs: "column", sm: "row" },
+        alignItems: { xs: "flex-start", sm: "center" },
+        gap: 1,
       }}
     >
-      <div style={{ 
-        display: 'flex', 
-        gap: isMobile ? '4px' : '8px', 
-        alignItems: 'center',
-        flexWrap: isMobile ? 'wrap' : 'nowrap',
-        width: isMobile ? '100%' : 'auto',
-        marginBottom: isMobile ? '8px' : '0'
-      }}>
+      <div className="flex flex-wrap gap-1">
         <GridToolbarColumnsButton />
         <GridToolbarFilterButton />
         <GridToolbarDensitySelector />
-        <GridToolbarExport />
-      </div>
-      <div style={{ 
-        marginLeft: isMobile ? '0' : 'auto', 
-        display: 'flex', 
-        gap: isMobile ? '4px' : '8px', 
-        alignItems: 'center',
-        width: isMobile ? '100%' : 'auto',
-        flexDirection: isMobile ? 'column' : 'row'
-      }}>
-        <GridToolbarQuickFilter 
+        <Button
+          size="small"
+          startIcon={isRefreshing ? <CircularProgress size={16} /> : <RefreshIcon />}
+          onClick={onRefresh}
+          disabled={isRefreshing}
           sx={{
-            "& .MuiInputBase-root": {
-              borderRadius: "0.5rem",
-              border: "1px solid #e2e8f0",
-              "&:hover": {
-                borderColor: "#cbd5e1",
-              }
-            },
-            width: isMobile ? '100%' : 'auto',
-            marginBottom: isMobile ? '8px' : '0'
+            minWidth: "32px",
+            height: "32px",
+            color: "#64748b",
+            transition: "all 0.2s",
+            borderRadius: "6px",
+            textTransform: "none",
+            "&:hover": {
+              backgroundColor: "#f1f5f9",
+              color: "#334155"
+            }
           }}
+        >
+          {isRefreshing ? "Refreshing..." : "Refresh"}
+        </Button>
+      </div>
+      <div className="flex-grow" />
+      <div className="flex flex-wrap gap-2 items-center">
+        <Button
+          color="primary"
+          startIcon={<AddIcon />}
+          variant="contained"
+          onClick={handleAddClick}
+          size="small"
+          sx={{
+            borderRadius: "8px",
+            padding: { xs: "6px 12px", sm: "8px 16px" },
+            backgroundColor: "#3b82f6",
+            textTransform: "none",
+            fontWeight: 500,
+            fontSize: { xs: "0.75rem", sm: "0.875rem" },
+            boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+            transition: "all 0.2s ease-in-out",
+            "&:hover": {
+              backgroundColor: "#2563eb",
+              transform: "translateY(-1px)",
+              boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+            },
+            "&:active": {
+              transform: "translateY(0)",
+              boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+            },
+          }}
+        >
+          Create Skeleton
+        </Button>
+        <Button
+          color="secondary"
+          variant="outlined"
+          onClick={() => setIsImportDialogOpen(true)}
+          size="small"
+          startIcon={isImporting ? <CircularProgress size={16} color="inherit" /> : null}
+          disabled={isImporting}
+          sx={{
+            borderRadius: "8px",
+            padding: { xs: "6px 12px", sm: "8px 16px" },
+            borderColor: "#e2e8f0",
+            color: "#64748b",
+            backgroundColor: "white",
+            textTransform: "none",
+            fontWeight: 500,
+            fontSize: { xs: "0.75rem", sm: "0.875rem" },
+            boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+            transition: "all 0.2s ease-in-out",
+            "&:hover": {
+              borderColor: "#cbd5e1",
+              backgroundColor: "#f8fafc",
+              transform: "translateY(-1px)",
+              boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+            },
+            "&:active": {
+              transform: "translateY(0)",
+              boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+            },
+            "& .MuiCircularProgress-root": {
+              color: "#6366f1",
+            }
+          }}
+        >
+          {isImporting ? `Importing ${importProgress > 0 ? `${importProgress}%` : ''}` : "Import file"}
+        </Button>
+        <GridToolbarExport 
+          csvOptions={{ 
+            fileName: `skeletons-export-${format(new Date(), "yyyy-MM-dd")}` 
+          }} 
         />
-        <div style={{
-          display: 'flex',
-          gap: isMobile ? '4px' : '8px',
-          width: isMobile ? '100%' : 'auto'
-        }}>
-          <FileUpload
-            onFileSelect={handleFileUpload}
-            isUploading={isImporting}
-            accept=".xlsx,.xls"
-          />
-          <Button
-            startIcon={<AddIcon />}
-            onClick={handleAddClick}
-            sx={{
-              padding: isMobile ? "4px 12px" : "6px 16px",
-              background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
-              color: "white",
-              border: "none",
-              boxShadow: "0 1px 3px 0 rgba(59, 130, 246, 0.1)",
-              "&:hover": {
-                background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
-              },
-              fontSize: isMobile ? "0.75rem" : "0.875rem",
-              flexGrow: isMobile ? 1 : 0
-            }}
-          >
-            {isMobile ? "Add" : "Add record"}
-          </Button>
-        </div>
+        <GridToolbarQuickFilter />
       </div>
     </GridToolbarContainer>
   );
-}
-
-interface ImportResult {
-  success_count: number;
-  error_count: number;
-  errors: string[];
 }
 
 interface OrderData {
@@ -291,12 +208,18 @@ interface OrderData {
 }
 
 export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
-  const { data: skeletonsData, isLoading, error } = useAllSkeletons();
+  const { data: skeletonsData, isLoading, error} = useAllSkeletons({
+    refetchOnWindowFocus: false,
+    // Reduce polling interval to improve responsiveness
+    refetchInterval: 1000 * 30 // 30 seconds polling
+  });
+  
   const skeletons = skeletonsData ? [...skeletonsData].sort((a, b) => {
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   }) : [];
   
-  const { mutate: importMutate, isPending: isImporting } = useImportExcel();
+  const refreshSkeletons = useRefreshSkeletons();
+  const { mutate: importMutate, isPending: isMutationImporting } = useImportExcel();
   const { mutate: deleteMutate } = useDeleteSkeleton();
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -306,6 +229,74 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
   const [skeletonToDelete, setSkeletonToDelete] = useState<GridRowId | null>(null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+  const [isRefreshComplete, setIsRefreshComplete] = useState(false);
+
+  const isImportLoading = isImporting || isMutationImporting;
+  
+  // Only show refresh indicator for explicit manual refreshes, not after mutations
+  const isRefreshing = isManualRefreshing;
+
+  // Helper function to safely end refreshing state
+  const endRefreshState = () => {
+    try {
+      // Mark refresh as complete
+      setIsRefreshComplete(true);
+      
+      // Clear the refreshing state after a short delay
+      setTimeout(() => {
+        setIsManualRefreshing(false);
+        setIsRefreshComplete(false);
+      }, 300);
+    } catch (error) {
+      // Fallback in case of errors
+      console.error("Error ending refresh state:", error);
+      setIsManualRefreshing(false);
+      setIsRefreshComplete(false);
+    }
+  };
+
+  // Immediately stop any refresh indicators when component unmounts
+  useEffect(() => {
+    return () => {
+      setIsManualRefreshing(false);
+      setIsRefreshComplete(false);
+    };
+  }, []);
+
+  // Handle manual refresh
+  const handleRefresh = async () => {
+    setIsManualRefreshing(true);
+    try {
+      await refreshSkeletons();
+      endRefreshState();
+    } catch (error) {
+      console.error("Error refreshing skeletons:", error);
+      endRefreshState();
+      toast.error("Failed to refresh data", {
+        description: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  };
+
+  // Add useEffect to handle automatic refresh state clearing
+  useEffect(() => {
+    // Only monitor refresh state for manual refreshes
+    if (isManualRefreshing && !isRefreshComplete) {
+      // Set a max timeout just in case something goes wrong with refresh
+      const safetyTimeout = setTimeout(() => {
+        console.log("Safety timeout: forcing end of refresh state");
+        endRefreshState();
+      }, 5000); // 5 second safety timeout
+      
+      return () => clearTimeout(safetyTimeout);
+    }
+  }, [isManualRefreshing, isRefreshComplete]);
 
   const handleCloseDialog = () => {
     setDialogOpen(false);
@@ -334,18 +325,26 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
 
   const handleConfirmDelete = () => {
     if (typeof skeletonToDelete === "string") {
+      // Close modal immediately while showing loading toast
+      setDeleteConfirmOpen(false);
+      const loadingToast = toast.loading("Deleting skeleton...");
+      
       deleteMutate(skeletonToDelete, {
         onSuccess: () => {
+          toast.dismiss(loadingToast);
           toast.success("Skeleton deleted successfully");
-          setDeleteConfirmOpen(false);
           setSkeletonToDelete(null);
+          // Ensure refreshing indicator stops
+          endRefreshState();
         },
         onError: (error: Error) => {
+          toast.dismiss(loadingToast);
           toast.error("Failed to delete skeleton", {
             description: error.message,
           });
-          setDeleteConfirmOpen(false);
           setSkeletonToDelete(null);
+          // Ensure refreshing indicator stops
+          endRefreshState();
         },
       });
     }
@@ -356,26 +355,47 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
     setSkeletonToDelete(null);
   };
 
-  const handleFileUpload = (file: File) => {
-    importMutate(file, {
-      onSuccess: (result: ImportResult) => {
-        if (result.error_count > 0) {
-          toast.error('Excel file import completed with errors', {
-            description: `Successfully imported ${result.success_count} records, but encountered ${result.error_count} errors:\n${result.errors.join('\n')}`,
-          });
-        } else {
-          toast.success('Excel file imported successfully', {
-            description: `${result.success_count} records imported`,
-          });
-        }
-      },
-      onError: (error: Error) => {
-        console.error("Import error:", error);
-        toast.error('Failed to import Excel file', {
-          description: error.message,
+  const handleFileUpload = async (file: File) => {
+    if (!file) return;
+    
+    try {
+      setIsImporting(true);
+      setImportError(null);
+      
+      // 模拟上传进度 - 在真实环境中可以使用 axios 的 onUploadProgress
+      const progressInterval = setInterval(() => {
+        setImportProgress((prev) => {
+          const newProgress = prev + Math.floor(Math.random() * 10);
+          return newProgress >= 90 ? 90 : newProgress;
         });
-      },
-    });
+      }, 300);
+      
+      // Call the import mutation
+      importMutate(file);
+      
+      // Set progress to 100% after successful import
+      clearInterval(progressInterval);
+      setImportProgress(100);
+      
+      // Close the dialog after a delay
+      setTimeout(() => {
+        setIsImportDialogOpen(false);
+        setIsImporting(false);
+        setImportProgress(0);
+      }, 1000);
+      
+    } catch (error) {
+      console.error("file import error:", error);
+      setIsImporting(false);
+      setImportProgress(0);
+    }
+  };
+
+  const handleImportDialogClose = () => {
+    if (!isImportLoading) {
+      setIsImportDialogOpen(false);
+      setImportError(null);
+    }
   };
 
   const columns: GridColDef[] = [
@@ -491,7 +511,7 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
               backgroundColor: config.bgColor,
               color: config.color,
               border: `1px solid ${config.borderColor}`,
-              padding: isMobile ? "2px 4px" : "4px 8px",
+              padding: isMobile ? "2px 4px" : "2px 6px",
               borderRadius: "6px",
               fontSize: isMobile ? "0.7rem" : "0.75rem",
               fontWeight: 500,
@@ -499,10 +519,11 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
               minWidth: isMobile ? "60px" : "70px",
               textAlign: "center",
               textTransform: "capitalize",
-              display: "flex",
+              display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              height: isMobile ? "20px" : "24px",
+              height: "auto",
+              lineHeight: "normal",
             }}
           >
             {status.toLowerCase()}
@@ -527,10 +548,17 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
       renderCell: (params: GridRenderCellParams<SkeletonItem>) => {
         try {
           const date = new Date(params.row.created_at);
-          return format(date, "yyyy-MM-dd");
+          return (
+            <span style={{ 
+              fontSize: isMobile ? "0.75rem" : "0.875rem",
+              lineHeight: "normal" 
+            }}>
+              {format(date, "yyyy-MM-dd")}
+            </span>
+          );
         } catch (error) {
           console.error("Date formatting error:", error);
-          return "Invalid Date";
+          return <span style={{ color: "#ef4444", fontSize: "0.75rem" }}>Invalid Date</span>;
         }
       },
     },
@@ -543,14 +571,19 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
       getActions: ({ id }) => [
         <GridActionsCellItem
           key="edit"
-          icon={<EditIcon fontSize={isMobile ? "small" : "medium"} />}
+          icon={<EditIcon fontSize="small" />}
           label="Edit"
           className="textPrimary"
           onClick={handleEditClick(id)}
           color="inherit"
           sx={{
-            padding: isMobile ? "2px" : "4px",
+            padding: isMobile ? "4px" : "6px",
             color: "#3b82f6",
+            height: "28px",
+            width: "28px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             "&:hover": {
               backgroundColor: "#eff6ff",
               transform: "translateY(-1px)",
@@ -563,13 +596,18 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
         />,
         <GridActionsCellItem
           key="delete"
-          icon={<DeleteIcon fontSize={isMobile ? "small" : "medium"} />}
+          icon={<DeleteIcon fontSize="small" />}
           label="Delete"
           onClick={handleDeleteClick(id)}
           color="inherit"
           sx={{
-            padding: isMobile ? "2px" : "4px",
+            padding: isMobile ? "4px" : "6px",
             color: "#ef4444",
+            height: "28px",
+            width: "28px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             "&:hover": {
               backgroundColor: "#fee2e2",
               transform: "translateY(-1px)",
@@ -591,10 +629,24 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
         const order = (params.row as SkeletonItem).order as OrderData | undefined;
         return order ? (
           <Tooltip title={`Batch: ${order.order_batch}`}>
-            <span style={{ fontSize: isMobile ? "0.75rem" : "inherit" }}>{`${order.order_name} (${order.order_batch})`}</span>
+            <span style={{ 
+              fontSize: isMobile ? "0.75rem" : "0.875rem",
+              display: "block",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              lineHeight: "normal"
+            }}>
+              {`${order.order_name} (${order.order_batch})`}
+            </span>
           </Tooltip>
         ) : (
-          <span style={{ fontSize: isMobile ? "0.75rem" : "inherit" }}>No order</span>
+          <span style={{ 
+            fontSize: isMobile ? "0.75rem" : "0.875rem",
+            color: "#94a3b8"
+          }}>
+            No order
+          </span>
         );
       },
       getApplyQuickFilterFn: (quickFilterValue: string) => {
@@ -635,7 +687,33 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
         flexDirection: "column",
         flex: 1,
         minHeight: 0,
+        position: "relative"
       }}>
+        {isRefreshing && (
+          <Box 
+            sx={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 5,
+              height: "3px",
+              background: "linear-gradient(to right, transparent, #6366f1, transparent)",
+              backgroundSize: "200% 100%",
+              animation: "loading 1.5s infinite",
+              opacity: isRefreshComplete ? 0 : 1,
+              transition: "opacity 0.3s ease-out",
+              "@keyframes loading": {
+                "0%": {
+                  backgroundPosition: "100% 0%"
+                },
+                "100%": {
+                  backgroundPosition: "0% 0%"
+                }
+              }
+            }}
+          />
+        )}
         <Box sx={{ flex: 1, minHeight: 0, position: "relative", display: "flex", flexDirection: "column" }}>
           {error ? (
             <div style={{
@@ -675,11 +753,12 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
               <p style={{ color: "#64748b" }}>Loading skeletons...</p>
             </div>
           ) : (
-            <StyledDataGrid
+            <DataGrid
               rows={skeletons}
               columns={columns}
+              editMode="row"
               slots={{
-                toolbar: CustomGridToolbar,
+                toolbar: CustomToolbar,
                 noRowsOverlay: () => (
                   <div style={{
                     display: "flex",
@@ -687,35 +766,55 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
                     alignItems: "center",
                     justifyContent: "center",
                     height: "100%",
-                    padding: isMobile ? "1rem" : "2rem",
+                    padding: isMobile ? "1.5rem" : "2.5rem",
                     textAlign: "center",
-                    color: "#64748b"
+                    color: "#64748b",
+                    background: "#f8fafc"
                   }}>
                     <p style={{ 
                       marginBottom: "1rem", 
                       fontSize: isMobile ? "1rem" : "1.125rem", 
-                      color: "#475569", 
-                      fontWeight: 500 
+                      color: "#334155", 
+                      fontWeight: 600 
                     }}>
                       No skeletons found
                     </p>
                     <p style={{ 
                       fontSize: isMobile ? "0.75rem" : "0.875rem", 
-                      color: "#94a3b8", 
+                      color: "#64748b", 
                       maxWidth: "400px", 
-                      lineHeight: "1.5" 
+                      lineHeight: "1.5",
+                      marginBottom: "1rem"
                     }}>
-                      Get started by adding your first skeleton using the &quot;Add{isMobile ? "" : " record"}&quot; button above, or import data from an Excel file.
+                      Get started by adding your first skeleton using the &quot;Create Skeleton&quot; button above, or import data from an Excel file.
                     </p>
                   </div>
+                ),
+                loadingOverlay: () => (
+                  <Backdrop open={true} sx={{ color: "#fff", zIndex: 1, backdropFilter: "blur(4px)" }}>
+                    <div className="flex flex-col items-center gap-3">
+                      <CircularProgress color="primary" size={36} thickness={4} />
+                      <div className="text-white text-sm font-medium">Loading skeletons...</div>
+                    </div>
+                  </Backdrop>
                 ),
               }}
               slotProps={{
                 toolbar: {
-                  handleFileUpload,
                   handleAddClick,
-                  isImporting
-                }
+                  setIsImportDialogOpen,
+                  isImporting: isImportLoading,
+                  importProgress,
+                  isRefreshing,
+                  onRefresh: handleRefresh
+                } as Partial<GridToolbarProps & {
+                  handleAddClick: () => void;
+                  setIsImportDialogOpen: (open: boolean) => void;
+                  isImporting: boolean;
+                  importProgress: number;
+                  isRefreshing: boolean;
+                  onRefresh: () => void;
+                }>,
               }}
               initialState={{
                 pagination: { paginationModel: { pageSize: isMobile ? 5 : 10 } },
@@ -731,25 +830,74 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
               }}
               pageSizeOptions={isMobile ? [5, 10, 25] : [5, 10, 25, 50, 100]}
               disableRowSelectionOnClick
-              getRowHeight={() => isMobile ? 40 : 44}
+              getRowHeight={() => isMobile ? 44 : 52}
               sx={{
-                flex: 1,
                 border: "none",
-                borderTop: "1px solid #e2e8f0",
-                "& .MuiDataGrid-cell": {
-                  fontSize: isMobile ? "0.75rem !important" : "0.875rem !important",
-                  padding: isMobile ? "8px 8px !important" : "12px 16px !important", 
+                borderRadius: "12px",
+                backgroundColor: "white",
+                boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
+                overflow: "hidden",
+                "& .MuiDataGrid-main": {
+                  padding: { xs: "0.5rem", sm: "1rem" },
                 },
                 "& .MuiDataGrid-columnHeaders": {
-                  "& .MuiDataGrid-columnHeader": {
-                    padding: isMobile ? "8px !important" : "16px !important",
-                    height: isMobile ? "48px !important" : "56px !important",
-                    fontSize: isMobile ? "0.75rem !important" : "0.875rem !important",
-                  }
+                  backgroundColor: "#f8fafc",
+                  borderRadius: "8px",
+                  padding: "0 8px",
+                  boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+                },
+                "& .MuiDataGrid-columnHeader": {
+                  fontSize: { xs: "0.75rem", sm: "0.8125rem" },
+                  fontWeight: 600,
+                  color: "#475569",
+                },
+                "& .MuiDataGrid-row": {
+                  borderRadius: "8px",
+                  transition: "background-color 0.2s ease",
+                  "&:hover": {
+                    backgroundColor: "#f1f5f9",
+                  },
+                  marginTop: "4px",
+                  marginBottom: "4px",
+                  height: isMobile ? "44px !important" : "52px !important",
+                  maxHeight: isMobile ? "44px !important" : "52px !important",
+                  minHeight: isMobile ? "44px !important" : "52px !important",
+                },
+                "& .MuiDataGrid-cell": {
+                  borderBottom: "none",
+                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                  padding: "0 8px",
+                  height: "100% !important",
+                  display: "flex !important",
+                  alignItems: "center !important",
+                },
+                "& .MuiDataGrid-cellContent": {
+                  display: "flex",
+                  alignItems: "center",
+                  height: "100%",
+                  width: "100%",
+                },
+                "& .MuiDataGrid-cell--withRenderer": {
+                  alignItems: "center",
+                  lineHeight: "normal",
+                },
+                "& .MuiDataGrid-cell--textLeft": {
+                  alignItems: "center",
                 },
                 "& .MuiDataGrid-footerContainer": {
-                  minHeight: isMobile ? "40px !important" : "52px !important",
-                }
+                  borderTop: "none",
+                  backgroundColor: "#f8fafc",
+                  borderRadius: "8px",
+                  marginTop: "8px",
+                },
+                "& .MuiTablePagination-root": {
+                  color: "#64748b",
+                  fontSize: { xs: "0.75rem", sm: "0.8125rem" },
+                },
+                "& .MuiDataGrid-virtualScroller": {
+                  marginTop: "0 !important",
+                  marginBottom: "0 !important",
+                },
               }}
             />
           )}
@@ -866,6 +1014,76 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
             }}
           >
             Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog 
+        open={isImportDialogOpen} 
+        onClose={handleImportDialogClose}
+        fullWidth
+        maxWidth="sm"
+        PaperProps={{
+          elevation: 4,
+          sx: {
+            borderRadius: '12px',
+            padding: { xs: 1, sm: 2 }
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          fontSize: { xs: '1.2rem', sm: '1.5rem' }, 
+          fontWeight: 600,
+          color: '#1e293b',
+          pb: 1
+        }}>
+          Import Excel file
+        </DialogTitle>
+        <DialogContent>
+          {importError ? (
+            <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-xl border border-red-100">
+              <h4 className="font-bold mb-1">Import error</h4>
+              <p className="text-sm">{importError}</p>
+            </div>
+          ) : null}
+          
+          <DialogContentText className="mb-4" sx={{ color: '#64748b', fontSize: '0.875rem' }}>
+            Please upload an Excel file containing skeleton data.
+            {isImportLoading && (
+              <div className="mt-4">
+                <div className="w-full bg-gray-100 rounded-full h-3 mb-2">
+                  <div 
+                    className="bg-blue-500 h-3 rounded-full transition-all duration-300"
+                    style={{ width: `${importProgress}%` }}
+                  ></div>
+                </div>
+                <div className="text-sm text-gray-500 text-right">{importProgress}%</div>
+              </div>
+            )}
+          </DialogContentText>
+          
+          <FileUpload 
+            onFileSelect={handleFileUpload} 
+            isUploading={isImportLoading}
+            accept=".xlsx,.xls"
+          />
+        </DialogContent>
+        <DialogActions sx={{ padding: '16px 24px' }}>
+          <Button 
+            onClick={handleImportDialogClose} 
+            color="inherit"
+            disabled={isImportLoading}
+            sx={{
+              color: '#64748b',
+              textTransform: 'none',
+              fontWeight: 500,
+              fontSize: '0.875rem',
+              '&:hover': {
+                backgroundColor: '#f1f5f9'
+              }
+            }}
+          >
+            Cancel
           </Button>
         </DialogActions>
       </Dialog>

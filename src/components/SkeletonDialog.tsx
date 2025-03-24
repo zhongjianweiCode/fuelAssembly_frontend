@@ -11,6 +11,7 @@ import {
   MenuItem,
   Box,
   IconButton,
+  CircularProgress,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { SkeletonItem, CreateSkeletonDto, UpdateSkeletonDto } from '@/types/skeleton';
@@ -69,29 +70,36 @@ const getInitialState = (): CreateSkeletonDto => ({
 
 export function SkeletonDialog({ open, onClose, data, mode, orders }: SkeletonDialogProps) {
   const [formData, setFormData] = useState<CreateSkeletonDto>(getInitialState());
-  const { mutate: createMutate } = useCreateSkeleton({
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const { mutate: createMutate, isPending: isCreating } = useCreateSkeleton({
     onSuccess: () => {
+      setIsSubmitting(false);
       toast.success('Skeleton created successfully');
-      onClose();
     },
     onError: (error: Error) => {
+      setIsSubmitting(false);
       toast.error('Failed to create skeleton', {
         description: error.message
       });
     }
   });
   
-  const { mutate: updateMutate } = useUpdateSkeleton({
+  const { mutate: updateMutate, isPending: isUpdating } = useUpdateSkeleton({
     onSuccess: () => {
+      setIsSubmitting(false);
       toast.success('Skeleton updated successfully');
-      onClose();
     },
     onError: (error: Error) => {
+      setIsSubmitting(false);
       toast.error('Failed to update skeleton', {
         description: error.message
       });
     }
   });
+
+  // Loading state combines all async operations
+  const isLoading = isSubmitting || isCreating || isUpdating;
 
   useEffect(() => {
     if (!open) return;
@@ -117,6 +125,9 @@ export function SkeletonDialog({ open, onClose, data, mode, orders }: SkeletonDi
     } else {
       setFormData(getInitialState());
     }
+    
+    // Reset submitting state when modal opens
+    setIsSubmitting(false);
   }, [data, mode, open]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -174,6 +185,13 @@ export function SkeletonDialog({ open, onClose, data, mode, orders }: SkeletonDi
       return;
     }
 
+    // Set submitting state to true to show loading indicators
+    setIsSubmitting(true);
+    
+    // Show loading toast and close modal immediately
+    toast.loading(`${mode === 'add' ? 'Creating' : 'Updating'} skeleton...`);
+    onClose();
+
     if (mode === 'edit') {
       if (!data?.id) return;
       const updatePayload: UpdateSkeletonDto = {
@@ -191,8 +209,6 @@ export function SkeletonDialog({ open, onClose, data, mode, orders }: SkeletonDi
         order_id: formData.order_id,
         created_at: format(new Date(formData.created_at), 'yyyy-MM-dd')
       };
-      console.log('Sending update payload:', JSON.stringify(updatePayload, null, 2));
-      console.log('Date format check - created_at:', updatePayload.created_at);
       updateMutate({ id: data.id, payload: updatePayload });
     } else {
       const createPayload: CreateSkeletonDto = {
@@ -210,7 +226,6 @@ export function SkeletonDialog({ open, onClose, data, mode, orders }: SkeletonDi
         order_id: formData.order_id,
         created_at: formData.created_at
       };
-      console.log('Creating skeleton with date:', formData.created_at);
       createMutate(createPayload);
     }
   };
@@ -603,14 +618,19 @@ export function SkeletonDialog({ open, onClose, data, mode, orders }: SkeletonDi
                 boxShadow: 'none'
               }
             }}
+            disabled={isLoading}
           >
             Cancel
           </Button>
           <Button 
             type="submit" 
             variant="contained"
+            disabled={isLoading}
+            startIcon={isLoading && <CircularProgress size={18} color="inherit" />}
             sx={{
-              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+              background: isLoading 
+                ? '#a5b4fc'
+                : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
               color: 'white',
               border: 'none',
               borderRadius: '0.75rem',
@@ -622,18 +642,26 @@ export function SkeletonDialog({ open, onClose, data, mode, orders }: SkeletonDi
               boxShadow: '0 4px 6px -1px rgba(99, 102, 241, 0.2)',
               transition: 'all 0.2s ease-in-out',
               '&:hover': {
-                background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
-                transform: 'translateY(-1px)',
-                boxShadow: '0 10px 15px -3px rgba(99, 102, 241, 0.3)'
+                background: isLoading 
+                  ? '#a5b4fc' 
+                  : 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                transform: isLoading ? 'none' : 'translateY(-1px)',
+                boxShadow: isLoading ? 'none' : '0 10px 15px -3px rgba(99, 102, 241, 0.3)'
               },
               '&:active': {
                 transform: 'translateY(0)',
                 boxShadow: '0 2px 4px -1px rgba(99, 102, 241, 0.1)',
                 background: 'linear-gradient(135deg, #4338ca 0%, #6d28d9 100%)'
+              },
+              '&.Mui-disabled': {
+                background: '#e2e8f0',
+                color: '#94a3b8'
               }
             }}
           >
-            {mode === 'add' ? 'Create' : 'Save Changes'}
+            {isLoading 
+              ? (mode === 'add' ? 'Creating...' : 'Saving...') 
+              : (mode === 'add' ? 'Create' : 'Save Changes')}
           </Button>
         </DialogActions>
       </form>
