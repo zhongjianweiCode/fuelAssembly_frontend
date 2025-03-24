@@ -68,7 +68,7 @@ export const FileUpload = ({
           : "linear-gradient(135deg, white, #fff)",
         transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
         cursor: "pointer",
-        minWidth: "220px",
+        minWidth: "200px",
         height: "44px",
         position: "relative",
         overflow: "hidden",

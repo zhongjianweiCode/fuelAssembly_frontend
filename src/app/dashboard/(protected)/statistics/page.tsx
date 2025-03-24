@@ -8,6 +8,8 @@ import DistributionTable from '@/components/charts/DistributionTable';
 import { Statistics } from '@/components/skeleton/components/Statistics';
 import { DatePicker } from '@/components/common/DatePicker';
 import { DescriptiveStatsTable } from '@/components/charts/DescriptiveStatsTable';
+import { useMediaQuery } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 
 // 定义区间
 const flatnessBins = [0, 0.03, 0.06, 0.09, 0.12, 0.15];
@@ -21,6 +23,8 @@ export default function StatisticsPage() {
   });
   const [endDate, setEndDate] = useState<Date>(new Date());
   const [activeTab, setActiveTab] = useState(0);
+  const muiTheme = useTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down('sm'));
 
   // 使用辅助函数获取数据
   const skeletonData = getSkeletonStats(skeletons || [], startDate, endDate);
@@ -46,14 +50,14 @@ export default function StatisticsPage() {
 
   // 计算合适的标签间隔
   const calculateInterval = () => {
-    return Math.ceil(skeletonData.length / 20); // 显示大约20个标签
+    return Math.ceil(skeletonData.length / (isMobile ? 10 : 20)); // 移动端显示更少的标签
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Statistics Analysis</h1>
-        <div className="flex gap-4">
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
+        <h1 className="text-xl sm:text-2xl font-bold">Statistics Analysis</h1>
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto">
           <DatePicker
             label="Start Date"
             value={startDate}
@@ -67,8 +71,8 @@ export default function StatisticsPage() {
         </div>
       </div>
 
-      <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
+      <div className="border-b border-gray-200 overflow-x-auto">
+        <nav className="-mb-px flex space-x-4 sm:space-x-8 min-w-[300px]">
           {['Total Skeletons','Quality Trends',  'Distribution Analysis',].map((tab, index) => (
             <button
               key={tab}
@@ -77,7 +81,7 @@ export default function StatisticsPage() {
                 activeTab === index
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+              } whitespace-nowrap py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm`}
             >
               {tab}
             </button>
@@ -85,9 +89,9 @@ export default function StatisticsPage() {
         </nav>
       </div>
 
-      <div className="mt-6">
+      <div className="mt-4 sm:mt-6">
         {activeTab === 1 && (
-          <div className="grid grid-cols-1 gap-6">
+          <div className="grid grid-cols-1 gap-4 sm:gap-6">
             <QualityTrendChart
               data={skeletonData}
               title="Perpendicularity(Rb)"
@@ -118,8 +122,8 @@ export default function StatisticsPage() {
         )}
 
         {activeTab === 2 && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-6">
+          <div className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <DistributionTable
                 title="Perpendicularity(Rb) Distribution"
                 bins={perpendicularityBins}

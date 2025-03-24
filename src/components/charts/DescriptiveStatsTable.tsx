@@ -1,4 +1,4 @@
-import { Box, ToggleButton, ToggleButtonGroup } from "@mui/material";
+import { Box, ToggleButton, ToggleButtonGroup, useMediaQuery, useTheme } from "@mui/material";
 import { useState } from "react";
 import { SkeletonItem } from "@/types/skeleton";
 import { calculateDescriptiveStats } from "@/lib/data";
@@ -15,6 +15,8 @@ export function DescriptiveStatsTable({
   endDate,
 }: DescriptiveStatsTableProps) {
   const [platform, setPlatform] = useState<"A" | "B">("A");
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // 根据日期范围过滤数据
   const filteredSkeletons = skeletons.filter((skeleton) => {
@@ -86,7 +88,7 @@ export function DescriptiveStatsTable({
         backgroundColor: "white",
         borderRadius: "1rem",
         boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.05)",
-        padding: "2rem",
+        padding: { xs: "1rem", sm: "1.5rem", md: "2rem" },
         border: "1px solid #e5e7eb",
         transition: "all 0.2s ease-in-out",
         "&:hover": {
@@ -98,9 +100,11 @@ export function DescriptiveStatsTable({
       <Box
         sx={{
           display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
           justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "2rem",
+          alignItems: { xs: "flex-start", sm: "center" },
+          gap: { xs: "1rem", sm: "0" },
+          marginBottom: { xs: "1.5rem", sm: "2rem" },
           paddingBottom: "1rem",
           borderBottom: "2px solid #f0f7ff",
         }}
@@ -110,12 +114,13 @@ export function DescriptiveStatsTable({
             display: "flex",
             alignItems: "center",
             gap: "0.5rem",
+            flexWrap: { xs: "wrap", sm: "nowrap" },
           }}
         >
           <span
             style={{
               color: "#1e40af",
-              fontSize: "1.25rem",
+              fontSize: isMobile ? "1.125rem" : "1.25rem",
               fontWeight: 600,
               letterSpacing: "-0.025em",
             }}
@@ -139,13 +144,16 @@ export function DescriptiveStatsTable({
           sx={{
             display: "flex",
             alignItems: "center",
-            gap: "1rem",
+            gap: "0.75rem",
+            flexWrap: { xs: "wrap", sm: "nowrap" },
+            width: { xs: "100%", sm: "auto" },
+            justifyContent: { xs: "space-between", sm: "flex-end" },
           }}
         >
           <button
             onClick={exportToCSV}
             style={{
-              padding: "0.5rem 1rem",
+              padding: isMobile ? "0.375rem 0.75rem" : "0.5rem 1rem",
               backgroundColor: "white",
               color: "#047857",
               borderRadius: "0.5rem",
@@ -172,8 +180,8 @@ export function DescriptiveStatsTable({
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
+              width={isMobile ? "14" : "16"}
+              height={isMobile ? "14" : "16"}
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -185,7 +193,7 @@ export function DescriptiveStatsTable({
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
-            Export CSV
+            {isMobile ? "CSV" : "Export CSV"}
           </button>
           <ToggleButtonGroup
             value={platform}
@@ -195,10 +203,10 @@ export function DescriptiveStatsTable({
                 setPlatform(newPlatform);
               }
             }}
-            size="small"
+            size={isMobile ? "small" : "small"}
             sx={{
               "& .MuiToggleButton-root": {
-                padding: "0.5rem 1rem",
+                padding: { xs: "0.375rem 0.75rem", sm: "0.5rem 1rem" },
                 color: "#64748b",
                 borderColor: "#e5e7eb",
                 fontSize: "0.875rem",
@@ -247,20 +255,22 @@ export function DescriptiveStatsTable({
             width: "100%",
             borderCollapse: "separate",
             borderSpacing: 0,
+            minWidth: isMobile ? "300px" : "auto",
           }}
         >
           <thead>
             <tr>
               <th
                 style={{
-                  padding: "1rem",
+                  padding: isMobile ? "0.75rem" : "1rem",
                   backgroundColor: "#f8fafc",
                   borderBottom: "2px solid #e5e7eb",
                   textAlign: "left",
                   color: "#1e40af",
                   fontWeight: 600,
-                  fontSize: "0.875rem",
+                  fontSize: isMobile ? "0.75rem" : "0.875rem",
                   letterSpacing: "0.025em",
+                  whiteSpace: "nowrap",
                 }}
               >
                 Metric
@@ -269,14 +279,15 @@ export function DescriptiveStatsTable({
                 <th
                   key={header}
                   style={{
-                    padding: "1rem",
+                    padding: isMobile ? "0.75rem" : "1rem",
                     backgroundColor: "#f8fafc",
                     borderBottom: "2px solid #e5e7eb",
                     textAlign: "right",
                     color: "#1e40af",
                     fontWeight: 600,
-                    fontSize: "0.875rem",
+                    fontSize: isMobile ? "0.75rem" : "0.875rem",
                     letterSpacing: "0.025em",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {header}
@@ -295,47 +306,51 @@ export function DescriptiveStatsTable({
               >
                 <td
                   style={{
-                    padding: "1rem",
+                    padding: isMobile ? "0.75rem" : "1rem",
                     color: "#1e40af",
                     fontWeight: 500,
-                    fontSize: "0.875rem",
+                    fontSize: isMobile ? "0.75rem" : "0.875rem",
                     borderBottom: "1px solid #e5e7eb",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {row.metric}
                 </td>
                 <td
                   style={{
-                    padding: "1rem",
+                    padding: isMobile ? "0.75rem" : "1rem",
                     textAlign: "right",
                     color: "#64748b",
-                    fontSize: "0.875rem",
+                    fontSize: isMobile ? "0.75rem" : "0.875rem",
                     fontFamily: "monospace",
                     borderBottom: "1px solid #e5e7eb",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {row.min}
                 </td>
                 <td
                   style={{
-                    padding: "1rem",
+                    padding: isMobile ? "0.75rem" : "1rem",
                     textAlign: "right",
                     color: "#64748b",
-                    fontSize: "0.875rem",
+                    fontSize: isMobile ? "0.75rem" : "0.875rem",
                     fontFamily: "monospace",
                     borderBottom: "1px solid #e5e7eb",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {row.max}
                 </td>
                 <td
                   style={{
-                    padding: "1rem",
+                    padding: isMobile ? "0.75rem" : "1rem",
                     textAlign: "right",
                     color: "#64748b",
-                    fontSize: "0.875rem",
+                    fontSize: isMobile ? "0.75rem" : "0.875rem",
                     fontFamily: "monospace",
                     borderBottom: "1px solid #e5e7eb",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {row.mean}

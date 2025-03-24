@@ -1,4 +1,4 @@
-import { Box } from "@mui/material";
+import { Box, useMediaQuery, useTheme } from "@mui/material";
 import { format } from "date-fns";
 import { SkeletonItem } from "@/types/skeleton";
 import { StatusStatistics } from "./StatusStatistics";
@@ -10,6 +10,9 @@ interface StatisticsProps {
 }
 
 export function Statistics({ skeletons, startDate, endDate }: StatisticsProps) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
   // Filter skeletons by date range
   const filteredSkeletons = skeletons.filter((skeleton) => {
     const skeletonDate = new Date(skeleton.created_at);
@@ -24,8 +27,8 @@ export function Statistics({ skeletons, startDate, endDate }: StatisticsProps) {
         boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.05)",
         display: "flex",
         flexDirection: "column",
-        gap: 3,
-        padding: "2rem",
+        gap: { xs: 2, sm: 3 },
+        padding: { xs: "1rem", sm: "1.5rem", md: "2rem" },
         height: "auto",
         minHeight: "fit-content",
         border: "1px solid #e5e7eb",
@@ -37,8 +40,8 @@ export function Statistics({ skeletons, startDate, endDate }: StatisticsProps) {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          gap: 2,
-          padding: "1.5rem",
+          gap: { xs: 1, sm: 2 },
+          padding: { xs: "1rem", sm: "1.5rem" },
           backgroundColor: "#f0f7ff",
           borderRadius: "0.75rem",
           border: "1px solid #e0eeff",
@@ -55,7 +58,7 @@ export function Statistics({ skeletons, startDate, endDate }: StatisticsProps) {
           <span
             style={{
               color: "#1e40af",
-              fontSize: "2.5rem",
+              fontSize: isMobile ? "1.75rem" : "2.5rem",
               fontWeight: 600,
               lineHeight: 1,
             }}
@@ -65,8 +68,9 @@ export function Statistics({ skeletons, startDate, endDate }: StatisticsProps) {
           <span
             style={{
               color: "#3b82f6",
-              fontSize: "0.875rem",
+              fontSize: isMobile ? "0.75rem" : "0.875rem",
               fontWeight: 500,
+              textAlign: "center",
             }}
           >
             Total Skeletons in Period
@@ -85,12 +89,13 @@ export function Statistics({ skeletons, startDate, endDate }: StatisticsProps) {
           justifyContent: "space-between",
           borderBottom: "2px solid #f0f7ff",
           paddingBottom: "0.75rem",
+          marginTop: { xs: 1, sm: 1 },
         }}
       >
         <span
           style={{
             color: "#1e40af",
-            fontSize: "1.125rem",
+            fontSize: isMobile ? "1rem" : "1.125rem",
             fontWeight: 600,
           }}
         >
@@ -102,8 +107,11 @@ export function Statistics({ skeletons, startDate, endDate }: StatisticsProps) {
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-          gap: "1rem",
+          gridTemplateColumns: {
+            xs: "repeat(auto-fill, minmax(240px, 1fr))",
+            sm: "repeat(auto-fill, minmax(280px, 1fr))"
+          },
+          gap: { xs: "0.75rem", sm: "1rem" },
         }}
       >
         {Array.from(
@@ -139,10 +147,10 @@ export function Statistics({ skeletons, startDate, endDate }: StatisticsProps) {
                 backgroundColor: "#ffffff",
                 border: "1px solid #e5e7eb",
                 borderRadius: "0.75rem",
-                padding: "1rem",
+                padding: { xs: "0.75rem", sm: "1rem" },
                 display: "flex",
                 flexDirection: "column",
-                gap: 1,
+                gap: { xs: 0.5, sm: 1 },
                 transition: "all 0.2s ease-in-out",
                 "&:hover": {
                   transform: "translateY(-2px)",
@@ -162,7 +170,8 @@ export function Statistics({ skeletons, startDate, endDate }: StatisticsProps) {
                   style={{
                     color: "#1e40af",
                     fontWeight: 600,
-                    fontSize: "0.875rem",
+                    fontSize: isMobile ? "0.813rem" : "0.875rem",
+                    wordBreak: "break-word",
                   }}
                 >
                   {orderName}
@@ -171,10 +180,12 @@ export function Statistics({ skeletons, startDate, endDate }: StatisticsProps) {
                   style={{
                     backgroundColor: "#3b82f6",
                     color: "white",
-                    padding: "0.25rem 0.75rem",
+                    padding: isMobile ? "0.2rem 0.5rem" : "0.25rem 0.75rem",
                     borderRadius: "9999px",
-                    fontSize: "0.875rem",
+                    fontSize: isMobile ? "0.75rem" : "0.875rem",
                     fontWeight: 600,
+                    flexShrink: 0,
+                    marginLeft: "4px",
                   }}
                 >
                   {data.count}
@@ -183,7 +194,7 @@ export function Statistics({ skeletons, startDate, endDate }: StatisticsProps) {
               <span
                 style={{
                   color: "#64748b",
-                  fontSize: "0.75rem",
+                  fontSize: isMobile ? "0.688rem" : "0.75rem",
                   display: "flex",
                   alignItems: "center",
                   gap: "0.5rem",
@@ -195,6 +206,7 @@ export function Statistics({ skeletons, startDate, endDate }: StatisticsProps) {
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
+                  style={{ width: isMobile ? "12px" : "16px", height: isMobile ? "12px" : "16px" }}
                 >
                   <path
                     strokeLinecap="round"

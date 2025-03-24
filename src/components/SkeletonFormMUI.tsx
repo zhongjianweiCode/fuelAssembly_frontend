@@ -40,6 +40,8 @@ import {
   DialogActions,
 } from "@mui/material";
 import { FileUpload } from "@/components/skeleton/components/FileUpload";
+import { useTheme } from "@mui/material/styles";
+import { useMediaQuery } from "@mui/material";
 
 enum SkeletonStatus {
   CMM = "CMM",
@@ -195,23 +197,41 @@ function CustomGridToolbar(props: GridToolbarProps & {
   isImporting: boolean;
 }) {
   const { handleFileUpload, handleAddClick, isImporting } = props;
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   return (
     <GridToolbarContainer
       sx={{
-        padding: "8px 16px",
-        gap: "8px",
+        padding: isMobile ? "6px 8px" : "8px 16px",
+        gap: isMobile ? "4px" : "8px",
         borderBottom: "1px solid #e2e8f0",
         backgroundColor: "#f8fafc",
+        flexDirection: isMobile ? "column" : "row",
+        alignItems: "flex-start",
       }}
     >
-      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+      <div style={{ 
+        display: 'flex', 
+        gap: isMobile ? '4px' : '8px', 
+        alignItems: 'center',
+        flexWrap: isMobile ? 'wrap' : 'nowrap',
+        width: isMobile ? '100%' : 'auto',
+        marginBottom: isMobile ? '8px' : '0'
+      }}>
         <GridToolbarColumnsButton />
         <GridToolbarFilterButton />
         <GridToolbarDensitySelector />
         <GridToolbarExport />
       </div>
-      <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px', alignItems: 'center' }}>
+      <div style={{ 
+        marginLeft: isMobile ? '0' : 'auto', 
+        display: 'flex', 
+        gap: isMobile ? '4px' : '8px', 
+        alignItems: 'center',
+        width: isMobile ? '100%' : 'auto',
+        flexDirection: isMobile ? 'column' : 'row'
+      }}>
         <GridToolbarQuickFilter 
           sx={{
             "& .MuiInputBase-root": {
@@ -220,30 +240,40 @@ function CustomGridToolbar(props: GridToolbarProps & {
               "&:hover": {
                 borderColor: "#cbd5e1",
               }
-            }
+            },
+            width: isMobile ? '100%' : 'auto',
+            marginBottom: isMobile ? '8px' : '0'
           }}
         />
-        <FileUpload
-          onFileSelect={handleFileUpload}
-          isUploading={isImporting}
-          accept=".xlsx,.xls"
-        />
-        <Button
-          startIcon={<AddIcon />}
-          onClick={handleAddClick}
-          sx={{
-            padding: "6px 16px",
-            background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
-            color: "white",
-            border: "none",
-            boxShadow: "0 1px 3px 0 rgba(59, 130, 246, 0.1)",
-            "&:hover": {
-              background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
-            }
-          }}
-        >
-          Add record
-        </Button>
+        <div style={{
+          display: 'flex',
+          gap: isMobile ? '4px' : '8px',
+          width: isMobile ? '100%' : 'auto'
+        }}>
+          <FileUpload
+            onFileSelect={handleFileUpload}
+            isUploading={isImporting}
+            accept=".xlsx,.xls"
+          />
+          <Button
+            startIcon={<AddIcon />}
+            onClick={handleAddClick}
+            sx={{
+              padding: isMobile ? "4px 12px" : "6px 16px",
+              background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+              color: "white",
+              border: "none",
+              boxShadow: "0 1px 3px 0 rgba(59, 130, 246, 0.1)",
+              "&:hover": {
+                background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+              },
+              fontSize: isMobile ? "0.75rem" : "0.875rem",
+              flexGrow: isMobile ? 1 : 0
+            }}
+          >
+            {isMobile ? "Add" : "Add record"}
+          </Button>
+        </div>
       </div>
     </GridToolbarContainer>
   );
@@ -274,6 +304,8 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
   const [dialogMode, setDialogMode] = useState<"add" | "edit">("add");
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [skeletonToDelete, setSkeletonToDelete] = useState<GridRowId | null>(null);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const handleCloseDialog = () => {
     setDialogOpen(false);
@@ -350,14 +382,14 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
     {
       field: "sk_number",
       headerName: "Skeleton ID",
-      width: 106,
+      width: isMobile ? 90 : 106,
       editable: false,
       filterable: true,
     },
     {
       field: "perpendiculartity",
       headerName: "Rb",
-      width: 70,
+      width: isMobile ? 60 : 70,
       editable: false,
       type: "number",
       filterable: true,
@@ -365,7 +397,7 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
     {
       field: "flatness",
       headerName: "Flatness",
-      width: 100,
+      width: isMobile ? 80 : 100,
       editable: false,
       type: "number",
       filterable: true,
@@ -373,7 +405,7 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
     {
       field: "length",
       headerName: "Length",
-      width: 110,
+      width: isMobile ? 80 : 110,
       editable: true,
       type: "number",
       filterable: true,
@@ -381,7 +413,7 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
     {
       field: "x",
       headerName: "X",
-      width: 70,
+      width: isMobile ? 60 : 70,
       editable: false,
       type: "number",
       filterable: true,
@@ -389,7 +421,7 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
     {
       field: "y",
       headerName: "Y",
-      width: 70,
+      width: isMobile ? 60 : 70,
       editable: false,
       type: "number",
       filterable: true,
@@ -397,7 +429,7 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
     {
       field: "status",
       headerName: "Status",
-      width: 120,
+      width: isMobile ? 100 : 120,
       editable: false,
       type: "singleSelect",
       valueOptions: Object.values(SkeletonStatus),
@@ -459,19 +491,18 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
               backgroundColor: config.bgColor,
               color: config.color,
               border: `1px solid ${config.borderColor}`,
-              padding: "4px 8px",
+              padding: isMobile ? "2px 4px" : "4px 8px",
               borderRadius: "6px",
-              fontSize: "0.75rem",
+              fontSize: isMobile ? "0.7rem" : "0.75rem",
               fontWeight: 500,
               width: "fit-content",
-              minWidth: "70px",
+              minWidth: isMobile ? "60px" : "70px",
               textAlign: "center",
               textTransform: "capitalize",
-              // textTransform: 'uppercase',
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              height: "24px",
+              height: isMobile ? "20px" : "24px",
             }}
           >
             {status.toLowerCase()}
@@ -482,7 +513,7 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
     {
       field: "platform",
       headerName: "Platform",
-      width: 90,
+      width: isMobile ? 80 : 90,
       editable: false,
       type: "singleSelect",
       valueOptions: Object.values(SkeletonPlatform),
@@ -491,7 +522,7 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
     {
       field: "created_at",
       headerName: "Created At",
-      width: 125,
+      width: isMobile ? 100 : 125,
       editable: false,
       renderCell: (params: GridRenderCellParams<SkeletonItem>) => {
         try {
@@ -507,18 +538,18 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
       field: "actions",
       type: "actions",
       headerName: "Actions",
-      width: 120,
+      width: isMobile ? 90 : 120,
       cellClassName: "actions",
       getActions: ({ id }) => [
         <GridActionsCellItem
           key="edit"
-          icon={<EditIcon />}
+          icon={<EditIcon fontSize={isMobile ? "small" : "medium"} />}
           label="Edit"
           className="textPrimary"
           onClick={handleEditClick(id)}
           color="inherit"
           sx={{
-            padding: "4px",
+            padding: isMobile ? "2px" : "4px",
             color: "#3b82f6",
             "&:hover": {
               backgroundColor: "#eff6ff",
@@ -532,12 +563,12 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
         />,
         <GridActionsCellItem
           key="delete"
-          icon={<DeleteIcon />}
+          icon={<DeleteIcon fontSize={isMobile ? "small" : "medium"} />}
           label="Delete"
           onClick={handleDeleteClick(id)}
           color="inherit"
           sx={{
-            padding: "4px",
+            padding: isMobile ? "2px" : "4px",
             color: "#ef4444",
             "&:hover": {
               backgroundColor: "#fee2e2",
@@ -554,16 +585,16 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
     {
       field: "order",
       headerName: "Order",
-      width: 105,
+      width: isMobile ? 90 : 105,
       filterable: true,
       renderCell: (params: GridRenderCellParams) => {
         const order = (params.row as SkeletonItem).order as OrderData | undefined;
         return order ? (
           <Tooltip title={`Batch: ${order.order_batch}`}>
-            <span>{`${order.order_name} (${order.order_batch})`}</span>
+            <span style={{ fontSize: isMobile ? "0.75rem" : "inherit" }}>{`${order.order_name} (${order.order_batch})`}</span>
           </Tooltip>
         ) : (
-          "No order"
+          <span style={{ fontSize: isMobile ? "0.75rem" : "inherit" }}>No order</span>
         );
       },
       getApplyQuickFilterFn: (quickFilterValue: string) => {
@@ -580,17 +611,6 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
         };
       }
     },
-    // {
-    //   field: "order_count",
-    //   headerName: "Counts",
-    //   width: 80,
-    //   renderCell: (params) => {
-    //     const currentOrder = params.row.order;
-    //     if (!currentOrder) return 0;
-    //     return skeletons.filter((row) => row.order?.id === currentOrder.id)
-    //       .length;
-    //   },
-    // },
   ];
 
   return (
@@ -598,12 +618,12 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
       sx={{
         width: "100%",
         height: "80vh",
-        padding: "24px",
+        padding: isMobile ? "12px" : "24px",
         background: "linear-gradient(to bottom right, #ffffff, #f8fafc)",
-        borderRadius: "1.5rem",
+        borderRadius: isMobile ? "1rem" : "1.5rem",
         display: "flex",
         flexDirection: "column",
-        gap: 3,
+        gap: isMobile ? 2 : 3,
         overflow: "hidden",
       }}
     >
@@ -624,14 +644,22 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
               alignItems: "center",
               justifyContent: "center",
               height: "100%",
-              padding: "2rem",
+              padding: isMobile ? "1rem" : "2rem",
               textAlign: "center",
               color: "#ef4444"
             }}>
-              <p style={{ marginBottom: "1rem", fontSize: "1.125rem", fontWeight: 500 }}>
+              <p style={{ 
+                marginBottom: "1rem", 
+                fontSize: isMobile ? "1rem" : "1.125rem", 
+                fontWeight: 500 
+              }}>
                 Error loading skeletons
               </p>
-              <p style={{ fontSize: "0.875rem", maxWidth: "400px", lineHeight: "1.5" }}>
+              <p style={{ 
+                fontSize: isMobile ? "0.75rem" : "0.875rem", 
+                maxWidth: "400px", 
+                lineHeight: "1.5" 
+              }}>
                 {error instanceof Error ? error.message : "An unknown error occurred"}
               </p>
             </div>
@@ -642,7 +670,7 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
               alignItems: "center",
               justifyContent: "center",
               height: "100%",
-              padding: "2rem"
+              padding: isMobile ? "1rem" : "2rem"
             }}>
               <p style={{ color: "#64748b" }}>Loading skeletons...</p>
             </div>
@@ -659,15 +687,25 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
                     alignItems: "center",
                     justifyContent: "center",
                     height: "100%",
-                    padding: "2rem",
+                    padding: isMobile ? "1rem" : "2rem",
                     textAlign: "center",
                     color: "#64748b"
                   }}>
-                    <p style={{ marginBottom: "1rem", fontSize: "1.125rem", color: "#475569", fontWeight: 500 }}>
+                    <p style={{ 
+                      marginBottom: "1rem", 
+                      fontSize: isMobile ? "1rem" : "1.125rem", 
+                      color: "#475569", 
+                      fontWeight: 500 
+                    }}>
                       No skeletons found
                     </p>
-                    <p style={{ fontSize: "0.875rem", color: "#94a3b8", maxWidth: "400px", lineHeight: "1.5" }}>
-                      Get started by adding your first skeleton using the &quot;Add record&quot; button above, or import data from an Excel file.
+                    <p style={{ 
+                      fontSize: isMobile ? "0.75rem" : "0.875rem", 
+                      color: "#94a3b8", 
+                      maxWidth: "400px", 
+                      lineHeight: "1.5" 
+                    }}>
+                      Get started by adding your first skeleton using the &quot;Add{isMobile ? "" : " record"}&quot; button above, or import data from an Excel file.
                     </p>
                   </div>
                 ),
@@ -680,7 +718,7 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
                 }
               }}
               initialState={{
-                pagination: { paginationModel: { pageSize: 10 } },
+                pagination: { paginationModel: { pageSize: isMobile ? 5 : 10 } },
                 sorting: {
                   sortModel: [{ field: 'created_at', sort: 'desc' }],
                 },
@@ -691,13 +729,27 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
                   },
                 },
               }}
-              pageSizeOptions={[5, 10, 25, 50, 100]}
+              pageSizeOptions={isMobile ? [5, 10, 25] : [5, 10, 25, 50, 100]}
               disableRowSelectionOnClick
-              getRowHeight={() => 44}
+              getRowHeight={() => isMobile ? 40 : 44}
               sx={{
                 flex: 1,
                 border: "none",
                 borderTop: "1px solid #e2e8f0",
+                "& .MuiDataGrid-cell": {
+                  fontSize: isMobile ? "0.75rem !important" : "0.875rem !important",
+                  padding: isMobile ? "8px 8px !important" : "12px 16px !important", 
+                },
+                "& .MuiDataGrid-columnHeaders": {
+                  "& .MuiDataGrid-columnHeader": {
+                    padding: isMobile ? "8px !important" : "16px !important",
+                    height: isMobile ? "48px !important" : "56px !important",
+                    fontSize: isMobile ? "0.75rem !important" : "0.875rem !important",
+                  }
+                },
+                "& .MuiDataGrid-footerContainer": {
+                  minHeight: isMobile ? "40px !important" : "52px !important",
+                }
               }}
             />
           )}
@@ -716,45 +768,53 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
         onClose={handleCancelDelete}
         PaperProps={{
           sx: {
-            borderRadius: "1.5rem",
+            borderRadius: isMobile ? "1rem" : "1.5rem",
             boxShadow: "0 25px 50px -12px rgb(0 0 0 / 0.25)",
             overflow: "hidden",
+            width: isMobile ? "calc(100% - 32px)" : "auto",
+            margin: isMobile ? "0 16px" : "32px",
           },
         }}
       >
         <DialogTitle
           sx={{
-            fontSize: "1.25rem",
+            fontSize: isMobile ? "1.125rem" : "1.25rem",
             fontWeight: 600,
             color: "#1e293b",
             borderBottom: "1px solid #e2e8f0",
-            padding: "20px 24px",
+            padding: isMobile ? "16px 20px" : "20px 24px",
             backgroundColor: "#f8fafc",
           }}
         >
           Confirm Delete
         </DialogTitle>
-        <DialogContent sx={{ padding: "24px", backgroundColor: "white" }}>
-          <DialogContentText sx={{ color: "#64748b" }}>
+        <DialogContent sx={{ 
+          padding: isMobile ? "20px" : "24px", 
+          backgroundColor: "white" 
+        }}>
+          <DialogContentText sx={{ 
+            color: "#64748b",
+            fontSize: isMobile ? "0.875rem" : "1rem" 
+          }}>
             Are you sure you want to delete this skeleton? This action cannot be
             undone.
           </DialogContentText>
         </DialogContent>
         <DialogActions
           sx={{
-            padding: "16px 24px",
+            padding: isMobile ? "12px 20px" : "16px 24px",
             borderTop: "1px solid #e2e8f0",
             backgroundColor: "#f8fafc",
-            gap: "12px",
+            gap: isMobile ? "8px" : "12px",
           }}
         >
           <Button
             onClick={handleCancelDelete}
             sx={{
               color: "#64748b",
-              padding: "8px 20px",
-              borderRadius: "0.75rem",
-              fontSize: "0.875rem",
+              padding: isMobile ? "6px 16px" : "8px 20px",
+              borderRadius: isMobile ? "0.5rem" : "0.75rem",
+              fontSize: isMobile ? "0.75rem" : "0.875rem",
               fontWeight: 500,
               letterSpacing: "0.025em",
               textTransform: "none",
@@ -781,9 +841,9 @@ export function SkeletonFormMUI({ orders }: { orders: OrderItem[] }) {
             color="error"
             variant="contained"
             sx={{
-              padding: "8px 20px",
-              borderRadius: "0.75rem",
-              fontSize: "0.875rem",
+              padding: isMobile ? "6px 16px" : "8px 20px",
+              borderRadius: isMobile ? "0.5rem" : "0.75rem",
+              fontSize: isMobile ? "0.75rem" : "0.875rem",
               fontWeight: 500,
               letterSpacing: "0.025em",
               textTransform: "none",
