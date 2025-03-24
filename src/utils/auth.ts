@@ -12,8 +12,8 @@ const getDomain = () => {
   }
   
   // 处理 Railway 生产域名
-  if (hostname === 'skdjangobackend-production.up.railway.app') {
-    return 'skdjangobackend-production.up.railway.app';
+  if (hostname === 'skeletondjangobackend-production.up.railway.app') {
+    return 'skeletondjangobackend-production.up.railway.app';
   }
   
   // 处理 railway.app 域名格式（如：myapp-production.up.railway.app）

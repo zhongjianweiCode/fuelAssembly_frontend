@@ -12,7 +12,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # 设置环境变量
-ENV NEXT_PUBLIC_API_BASE_URL=https://skdjangobackend-production.up.railway.app
+ENV NEXT_PUBLIC_API_BASE_URL=https://skeletondjangobackend-production.up.railway.app
 ENV NEXT_PUBLIC_NODE_ENV=production
 ENV NODE_ENV=production
 # 运行构建
@@ -23,7 +23,7 @@ FROM base AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
-ENV NEXT_PUBLIC_API_BASE_URL=https://skdjangobackend-production.up.railway.app
+ENV NEXT_PUBLIC_API_BASE_URL=https://skeletondjangobackend-production.up.railway.app
 ENV NEXT_PUBLIC_NODE_ENV=production
 ENV PORT=3000
 

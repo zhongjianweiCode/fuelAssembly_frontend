@@ -44,7 +44,7 @@ const publicPaths = ['/', '/login', '/register', '/password-reset', '/logout'];
 const getApiUrl = (endpoint: string): string => {
   // 开发环境直接使用本地后端
   const baseUrl = process.env.NEXT_PUBLIC_NODE_ENV === 'production' 
-    ? "https://skdjangobackend-production.up.railway.app" 
+    ? "https://skeletondjangobackend-production.up.railway.app" 
     : "http://127.0.0.1:8000";
   
   // 确保endpoint以/开头

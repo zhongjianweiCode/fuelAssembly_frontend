@@ -12,7 +12,7 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'skdjangobackend-production.up.railway.app'
+        hostname: 'skeletondjangobackend-production.up.railway.app'
       }
     ],
   },

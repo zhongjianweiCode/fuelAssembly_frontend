@@ -8,7 +8,7 @@ import {
 
 // Ensure we have a default value even if environment variables are missing
 const DEFAULT_BASE_URL = "http://127.0.0.1:8000";
-const PRODUCTION_API_URL = "https://skdjangobackend-production.up.railway.app";
+const PRODUCTION_API_URL = "https://skeletondjangobackend-production.up.railway.app";
 
 // Determine the API base URL
 let BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || DEFAULT_BASE_URL;
